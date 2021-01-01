@@ -81,10 +81,8 @@ vet: ## Run `go vet` on the code
 
 test: vet unittest ## Run all tests
 
-.prepare: $(DIST_DIR)
-
 $(DIST_DIR):
-	@if test -d $(DIST_DIR); then mkdir -p $(DIST_DIR) ; fi
+	@if test ! -d $(DIST_DIR); then mkdir -p $(DIST_DIR) ; fi
 
 .PHONY: fmt
 fmt: ## Format Go code
@@ -112,7 +110,7 @@ precheck: test test-fmt test-tidy  ## Run all tests that happen in a PR
 # Build targets for our supported plaforms
 windows: $(WINDOWS_BIN)  ## Build 64bit Windows binary
 
-GO_BUILD_DEPS: cmd/*.go .prepare
+GO_BUILD_DEPS: cmd/*.go accounts/*.go $(DIST_DIR)
 
 $(WINDOWS_BIN): $(GO_BUILD_DEPS)
 	GOARCH=amd64 GOOS=windows go build -ldflags='$(LDFLAGS)' -o $(WINDOWS_BIN) cmd/*.go
