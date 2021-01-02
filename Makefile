@@ -110,32 +110,30 @@ precheck: test test-fmt test-tidy  ## Run all tests that happen in a PR
 # Build targets for our supported plaforms
 windows: $(WINDOWS_BIN)  ## Build 64bit Windows binary
 
-GO_BUILD_DEPS: cmd/*.go accounts/*.go $(DIST_DIR)
-
-$(WINDOWS_BIN): $(GO_BUILD_DEPS)
+$(WINDOWS_BIN): cmd/*.go $(DIST_DIR)
 	GOARCH=amd64 GOOS=windows go build -ldflags='$(LDFLAGS)' -o $(WINDOWS_BIN) cmd/*.go
 	@echo "Created: $(WINDOWS_BIN)"
 
 windows32: $(WINDOWS32_BIN)  ## Build 32bit Windows binary
 
-$(WINDOWS32_BIN): $(GO_BUILD_DEPS)
+$(WINDOWS32_BIN): cmd/*.go $(DIST_DIR)
 	GOARCH=386 GOOS=windows go build -ldflags='$(LDFLAGS)' -o $(WINDOWS32_BIN) cmd/*.go
 	@echo "Created: $(WINDOWS32_BIN)"
 
 linux: $(LINUX_BIN)  ## Build Linux/x86_64 binary
 
-$(LINUX_BIN): $(GO_BUILD_DEPS)
+$(LINUX_BIN): cmd/*.go $(DIST_DIR)
 	GOARCH=amd64 GOOS=linux go build -ldflags='$(LDFLAGS)' -o $(LINUX_BIN) cmd/*.go
 	@echo "Created: $(LINUX_BIN)"
 
 linux-arm64: $(LINUXARM64_BIN)  ## Build Linux/arm64 binary
 
-$(LINUXARM64_BIN): $(GO_BUILD_DEPS)
+$(LINUXARM64_BIN): cmd/*.go $(DIST_DIR)
 	GOARCH=arm64 GOOS=linux go build -ldflags='$(LDFLAGS)' -o $(LINUXARM64_BIN) cmd/*.go
 	@echo "Created: $(LINUXARM64_BIN)"
 
 darwin: $(DARWIN_BIN)  ## Build MacOS/x86_64 binary
 
-$(DARWIN_BIN): $(GO_BUILD_DEPS)
+$(DARWIN_BIN): cmd/*.go $(DIST_DIR)
 	GOARCH=amd64 GOOS=darwin go build -ldflags='$(LDFLAGS)' -o $(DARWIN_BIN) cmd/*.go
 	@echo "Created: $(DARWIN_BIN)"

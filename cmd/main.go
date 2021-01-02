@@ -41,22 +41,22 @@ type RunContext struct {
 type CLI struct {
 	LogLevel string `name:"loglevel" default:"warn" enum:"error,warn,debug" help:"Logging level"`
 	// AWS params
-	Account  int    `name:"account" help:"AWS Account ID" env:"AWS_ACCOUNT_ID"`
-	Region   string `name:"region" help:"AWS Region" env:"AWS_REGION"`
-	Role     string `name:"role" help:"AWS Role to assume"`
-	Duration int    `name:"duration" help:"AWS credential duration (minutes)" default:60`
+	Account  uint64 `optional help:"AWS Account ID" env:"AWS_ACCOUNT_ID"`
+	Region   string `optional help:"AWS Region" env:"AWS_REGION"`
+	Role     string `optional help:"AWS Role to assume"`
+	Duration int    `optional help:"AWS credential duration (minutes)" default:60`
 
 	// OneLogin params
-	ClientID     string `name:"client-id" help:"OneLogin ClientID" env:"OL_CLIENT_ID"`
-	ClientSecret string `name:"client-secret" help:"OneLogin Client Secret" env:"OL_CLIENT_SECRET"`
-	AppId        string `name:"app-id" help:"OneLogin App ID" env:"OL_APP_ID"`
-	Subdomain    string `name:"subdomain" help:"OneLogin Subdomain" env:"OL_SUBDOMAIN"`
-	Username     string `name:"username" help:"OneLogin username" env:"OL_USERNAME"`
-	Password     string `name:"password" help:"OneLogin password" env:"OL_PASSWORD"`
-	OLRegion     string `name:"ol-region" help:"OneLogin region" default:"us" enum:"us,eu" env:"OL_REGION"`
+	ClientID     string `optional help:"OneLogin ClientID" env:"OL_CLIENT_ID"`
+	ClientSecret string `optional help:"OneLogin Client Secret" env:"OL_CLIENT_SECRET"`
+	AppId        int32  `optional help:"OneLogin App ID" env:"OL_APP_ID"`
+	Subdomain    string `optional help:"OneLogin Subdomain" env:"OL_SUBDOMAIN"`
+	Email        string `optional help:"OneLogin login email" env:"OL_EMAIL"`
+	Password     string `optional help:"OneLogin password" env:"OL_PASSWORD"`
+	OLRegion     string `optional help:"OneLogin region" default:"us" enum:"us,eu" env:"OL_REGION"`
 
 	// Commands
-	Exec ExecCmd `cmd help:"Execute command using specified AWS Role."`
+	Exec ExecCmd `cmd help:"Execute command using specified AWS Role." default:"1"`
 	//	Metadata MetadataCmd `cmd help:"Start metadata service."`
 
 }
@@ -79,18 +79,40 @@ func parse_args(cli *CLI) *kong.Context {
 
 func main() {
 	cli := CLI{}
-	ctx := parse_args(&cli)
+	_ = parse_args(&cli)
 
-	olc, err := NewOneLoginAPIClient(ctx, cli)
+	c, err := LoadConfig()
+	if err != nil {
+		log.Fatalf("Unable to load config: %s", err.Error())
+	}
+	c.MergeCLI(&cli)
+	log.Debugf("CLI Config: %v", cli)
+
+	alias, err := c.GetAccountAlias(cli.Account)
+	if err != nil {
+		log.Warnf("Unable to lookup %d: %s", cli.Account, err.Error())
+	} else {
+		fmt.Printf("Account: %s [%d]\n", alias, cli.Account)
+	}
+
+	olc, err := NewOneLoginAPIClient(cli)
 	if err != nil {
 		log.Fatal(err)
 	}
+	/*
+		app, err := OneLoginGetApp(olc, cli.AppId)
+		if err != nil {
+			log.Fatalf("Unable to get App: %s", err.Error())
+		}
+		log.Debugf("App: %v", app)
+	*/
+
 	token, err := OneLoginSessionLoginToken(olc, cli)
 	if err != nil {
-		log.Fatalf("%s", err.Error())
+		log.Fatalf("Unable to get SessionLoginToken: %s", err.Error())
 	}
 
-	fmt.Printf("token: %v", token)
+	log.Debugf("token: %v\n", token)
 	/*
 		cli_args := RunContext{
 			// variables not part of ExecCmd go here
