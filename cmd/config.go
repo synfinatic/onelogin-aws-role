@@ -20,6 +20,8 @@ type Config struct {
 	ClientSecret string
 	Subdomain    string
 	Email        string
+	Otp          string
+	OtpPush      bool `yaml:"otp_push"`
 	Accounts     map[uint64]string
 	Apps         map[uint64]yaml.MapItem
 }

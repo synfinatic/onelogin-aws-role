@@ -22,8 +22,8 @@ import (
 	"fmt"
 
 	"github.com/alecthomas/kong"
+	"github.com/synfinatic/onelogin-aws-role/onelogin"
 
-	slt "github.com/onelogin/onelogin-go-sdk/pkg/services/session_login_tokens"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -34,8 +34,8 @@ var Tag = "NO-TAG"
 var CommitID = "unknown"
 
 type RunContext struct {
-	SessionLoginToken *slt.SessionLoginToken
-	Kctx              *kong.Context
+	OneLogin *onelogin.OneLogin
+	Kctx     *kong.Context
 }
 
 type CLI struct {
@@ -54,6 +54,9 @@ type CLI struct {
 	Email        string `optional help:"OneLogin login email" env:"OL_EMAIL"`
 	Password     string `optional help:"OneLogin password" env:"OL_PASSWORD"`
 	OLRegion     string `optional help:"OneLogin region" default:"us" enum:"us,eu" env:"OL_REGION"`
+	MfaType      string `optional help:"OneLogin MFA name" env:"OL_MFA"`
+	MfaPush      bool   `optional help:"Use MFA Push with OneLogin Protect" env:"OL_MFA_PUSH"`
+	Mfa          int32  `optional help:"MFA Code"`
 
 	// Commands
 	Exec ExecCmd `cmd help:"Execute command using specified AWS Role." default:"1"`
@@ -86,7 +89,6 @@ func main() {
 		log.Fatalf("Unable to load config: %s", err.Error())
 	}
 	c.MergeCLI(&cli)
-	log.Debugf("CLI Config: %v", cli)
 
 	alias, err := c.GetAccountAlias(cli.Account)
 	if err != nil {
@@ -95,30 +97,17 @@ func main() {
 		fmt.Printf("Account: %s [%d]\n", alias, cli.Account)
 	}
 
-	olc, err := NewOneLoginAPIClient(cli)
+	o := onelogin.NewOneLogin(cli.ClientID, cli.ClientSecret, cli.OLRegion)
+	err = o.CreateSessionLoginToken(cli.Email, cli.Password, cli.Subdomain)
 	if err != nil {
-		log.Fatal(err)
-	}
-	/*
-		app, err := OneLoginGetApp(olc, cli.AppId)
-		if err != nil {
-			log.Fatalf("Unable to get App: %s", err.Error())
-		}
-		log.Debugf("App: %v", app)
-	*/
-
-	token, err := OneLoginSessionLoginToken(olc, cli)
-	if err != nil {
-		log.Fatalf("Unable to get SessionLoginToken: %s", err.Error())
+		log.Fatalf("Unable to CreateSessionLoginToken: %s", err.Error())
 	}
 
-	log.Debugf("token: %v\n", token)
-	/*
-		cli_args := RunContext{
-			// variables not part of ExecCmd go here
-			SessionLoginToken: resp.Value,
-		}
-	*/
+	err = o.OneLoginProtectPush(30)
+	if err != nil {
+		log.Fatalf("Unable to CreateSessionLoginToken: %s", err.Error())
+	}
 
+	log.Debugf("SessionLoginToken: %s", o.SessionLoginToken)
 	//	err := ctx.Run(&cli)
 }
