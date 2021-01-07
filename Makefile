@@ -110,7 +110,7 @@ precheck: test test-fmt test-tidy  ## Run all tests that happen in a PR
 # Build targets for our supported plaforms
 windows: $(WINDOWS_BIN)  ## Build 64bit Windows binary
 
-$(WINDOWS_BIN): cmd/*.go $(DIST_DIR)
+$(WINDOWS_BIN): $(wildcard */*.go) $(DIST_DIR)
 	GOARCH=amd64 GOOS=windows go build -ldflags='$(LDFLAGS)' -o $(WINDOWS_BIN) cmd/*.go
 	@echo "Created: $(WINDOWS_BIN)"
 
@@ -134,6 +134,6 @@ $(LINUXARM64_BIN): cmd/*.go $(DIST_DIR)
 
 darwin: $(DARWIN_BIN)  ## Build MacOS/x86_64 binary
 
-$(DARWIN_BIN): cmd/*.go $(DIST_DIR)
+$(DARWIN_BIN): $(wildcard */*.go) $(DIST_DIR)
 	GOARCH=amd64 GOOS=darwin go build -ldflags='$(LDFLAGS)' -o $(DARWIN_BIN) cmd/*.go
 	@echo "Created: $(DARWIN_BIN)"

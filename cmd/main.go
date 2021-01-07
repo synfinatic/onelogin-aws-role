@@ -19,8 +19,6 @@ package main
  */
 
 import (
-	"fmt"
-
 	"github.com/alecthomas/kong"
 	"github.com/synfinatic/onelogin-aws-role/onelogin"
 
@@ -49,7 +47,7 @@ type CLI struct {
 	// OneLogin params
 	ClientID     string `optional help:"OneLogin ClientID" env:"OL_CLIENT_ID"`
 	ClientSecret string `optional help:"OneLogin Client Secret" env:"OL_CLIENT_SECRET"`
-	AppId        int32  `optional help:"OneLogin App ID" env:"OL_APP_ID"`
+	AppId        uint32 `optional help:"OneLogin App ID" env:"OL_APP_ID"`
 	Subdomain    string `optional help:"OneLogin Subdomain" env:"OL_SUBDOMAIN"`
 	Email        string `optional help:"OneLogin login email" env:"OL_EMAIL"`
 	Password     string `optional help:"OneLogin password" env:"OL_PASSWORD"`
@@ -90,24 +88,24 @@ func main() {
 	}
 	c.MergeCLI(&cli)
 
-	alias, err := c.GetAccountAlias(cli.Account)
-	if err != nil {
-		log.Warnf("Unable to lookup %d: %s", cli.Account, err.Error())
-	} else {
-		fmt.Printf("Account: %s [%d]\n", alias, cli.Account)
-	}
-
 	o := onelogin.NewOneLogin(cli.ClientID, cli.ClientSecret, cli.OLRegion)
-	err = o.CreateSessionLoginToken(cli.Email, cli.Password, cli.Subdomain)
+	ols := onelogin.NewOneLoginSAML(o)
+	need_mfa, err := ols.GetAssertion(cli.Email, cli.Password, cli.Subdomain, cli.AppId, "")
 	if err != nil {
-		log.Fatalf("Unable to CreateSessionLoginToken: %s", err.Error())
+		log.Fatalf("GetAssertion: %s", err.Error())
 	}
-
-	err = o.OneLoginProtectPush(30)
-	if err != nil {
-		log.Fatalf("Unable to CreateSessionLoginToken: %s", err.Error())
+	var ok bool
+	if need_mfa {
+		log.Debug("Need MFA")
+		ok, err = ols.OneLoginProtectPush(cli.AppId, 10)
+		if err != nil {
+			log.Fatalf("Error doing ProtectPush: %s", err.Error())
+		}
 	}
-
-	log.Debugf("SessionLoginToken: %s", o.SessionLoginToken)
-	//	err := ctx.Run(&cli)
+	log.Debug("Checking result")
+	if ok {
+		log.Info("Got SAML Assertion: %s", ols.Assertion[cli.AppId])
+	} else {
+		log.Error("Unable to get SAML Assertion")
+	}
 }
