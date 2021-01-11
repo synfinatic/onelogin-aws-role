@@ -1,49 +1,150 @@
-# OneLogin Go AWS Assume Role
+# OneLogin AWS (Assume) Role
 
-A GoLang implimentation of [OneLogin Python AWS Assume Role](
-https://github.com/onelogin/onelogin-python-aws-assume-role).
-
-Assume an AWS Role and get temporary credentials using Onelogin.
+Assume an AWS Role and get temporary credentials using [Onelogin](
+https://www.onelogin.com).
 
 Users will be able to choose from among multiple AWS roles in multiple AWS 
 accounts when they sign in using OneLogin in order to assume an AWS Role and 
 obtain temporary AWS acccess credentials.
 
-This is really useful for customers that run complex environments with multiple 
-AWS accounts, roles and many different people that need periodic access as it 
-saves manually generating and managing AWS credentials.
+This is really useful for SRE/Engineering organizations that run complex 
+environments with multiple AWS accounts, roles and many different people that 
+need periodic access as it saves manually generating and managing AWS credentials.
 
 ## Why?
 
-Because the idea of running a Java application every I want AWS creds or dealing
-with dependency/package management in Python made me shudder in horror.  I
-wanted a _single_ binary and something that is cross-platform.
+Because the idea of running a [Java application](
+https://github.com/onelogin/onelogin-aws-cli-assume-role)
+every I want AWS creds or dealing
+with dependency/package management in [Python](
+https://github.com/onelogin/onelogin-python-aws-assume-role)
+made me shudder in horror.  I wanted a _single_ binary and something that is
+cross-platform.  Also, I wanted to provide a different user experience- no 
+mixing of JSON and YAML for config files for example.
+
 
 ## AWS and OneLogin prerequisites
 
-The "[Configuring SAML for Amazon Web Services (AWS) with Multiple Accounts and Roles](
-https://onelogin.service-now.com/support?id=kb_article&sys_id=66a91d03db109700d5505eea4b9619a5)" guide explains how to:
- - Add the AWS Multi Account app to OneLogin
- - Configure OneLogin as an Identity Provider for each AWS account
- - Add or update AWS Roles to use OneLogin as the SAML provider
- - Add external roles to give OneLogin access to your AWS accounts
- - Complete your AWS Multi Account configuration in OneLogin
+Read what [Onelogin has to say here](
+https://github.com/onelogin/onelogin-aws-cli-assume-role#aws-and-onelogin-prerequisites).
 
 ## Installation
 
-### Hosting
+Just run `make` to build a binary and copy it to a location in your `$PATH`.
 
-#### Github
+## Settings
 
-The project is hosted at github. You can download it from:
-* Lastest release: https://github.com/synfinatic/onelogin-go-aws-assume-role/releases/latest
-* Master repo: https://github.com/synfinatic/onelogin-go-aws-assume-role/tree/master
+OneLogin AWS Role has a single YAML configuration file: 
+`~/.onelogin.aws.role.yaml`
 
-### Compiling
+It contains the following sections:
 
-Just run `make`
+### OAuth2 Config
 
-### Settings
+This section defines the OAuth2 configuration necessary to talk to OneLogin
+API servers.  You will need to get this from your administrator.
+
+```yaml
+oath_config:
+    client_id: "<string>"
+    client_secret: "<string>"
+    region: "<string>"
+    ip: "<string>
+```
+
+Where:
+
+ * `client_id`  - OneLogin OAuth2 client ID (required)
+ * `client_secret`  - OneLogin OAuth2 client secret (required)
+ * `region`  - One of `us` or `eu` depending on OneLogin server region to use (required)
+ * `ip`  - Specify the IP to be used on the method to retrieve the SAMLResponse in
+    order to bypass MFA if that IP was previously whitelisted. (optional)
+
+### Authentication
+
+This section defines some basic information on how you will authenticate
+to OneLogin.
+
+```yaml
+auth:
+    username: "<string>"
+    subdomain: "<string>"
+    duration: <integer>
+```
+
+Where:
+
+ * `username`  - Is your username (required)
+ * `subdomain`  - Is your OneLogin subdomain in the URL where you login.  
+    XXXXX.onelogin.com (required)
+ * `duration`  - How many seconds your AssumeRole credentials should last by default
+    (optional, default is 3600, minimum 900 and max 43200)
+
+By default, the credentials only last for 1 hour, but you can 
+[edit that restriction on AWS and set a max of 12h session duration](
+https://aws.amazon.com/es/blogs/security/enable-federated-api-access-to-your-aws-resources-for-up-to-12-hours-using-iam-roles/).
+
+### Apps
+
+This section defines each of the AWS Account & Roles that may be used via
+AssumeRole.
+
+```yaml
+apps:
+    app_id: <integer>
+        aws_account_id: <integer>
+            aws_role_name: "<string>"
+                profile: "<string>"
+                region: "<string>" 
+```
+
+Where:
+
+ * `app_id`  - Is the Application ID provided by your administrator (required)
+ * `aws_account_id`  - AWS Account ID (required)
+ * `aws_role_name`   - AWS Role name, not the full ARN (required)
+ * `profile`  - Name of AWS_PROFILE to write to `~/.aws/config` (optional)
+ * `region`  - Configure the default AWS region.  Default: `us-east-1` (optional)
+
+Not that you can configure multiple roles for each account, multiple accounts for
+each applications and multiple applications.  While it is strongly advised that 
+you use unique profiles for each account+region combination, that is not required.
+
+###  Account Aliases
+
+There is an optional section that can be created to give more
+human readable names to the account list.
+
+```yaml
+accounts:
+    <integer>: "<string>"
+```
+
+Where:
+
+ * `<integer>` is the AWS Account ID
+ * `<string>` is the account alias to use.
+
+Note if you do not have an alias set for a given AWS Account Id, it will try 
+calling `iam:ListAccountAliases` to determine the alias of the account.
+
+
+## License
+
+This program is available under the terms of the [GPLv3 License](https://opensource.org/licenses/gpl-3.0)
+
+## Thanks
+
+This README and project is heavily based on and includes content from
+[OneLogin-Python-Go-AWS-Assume-Role](
+https://github.com/onelogin/onelogin-python-aws-assume-role).
+
+FIX BELOW THIS LINE
+===================
+
+
+
+
 
 The onelogin-aws-assume-role utility uses the same settings file that
 the [OneLogin Python SDK](
@@ -146,30 +247,6 @@ ultimately attempt to log in with the role `Administrator` on account
 `22222222`, with region set to `eu-east-1` and, if successful, save the
 credentials to profile `my-account`.
 
-In addition, there is another optional file that can be created to give more
-human readable names to the account list, named `accounts.yaml`, which
-should be placed in the same path where the python script is invoked:
-
-```yaml
-accounts:
-  "987654321012": Prod account
-  "123456789012": Dev Account
-```
-
-This isn't needed for the script to function but it provides a better user
-experience.
-
-### Docker installation method
-
-* `git clone git@github.com:synfinatic/onelogin-go-aws-assume-role.git`
-* `cd onelogin-go-aws-assume-role`
-* Enter your credentials in the onelogin.sdk.json file as explained above
-* Save the onelogin.sdk.json file in the root directory of the repo
-* `docker build . -t awsaccess:latest`
-* `docker run -it -v ~/.aws:/root/.aws awsaccess:latest onelogin-aws-assume-role
-    --onelogin-username {user_email} --onelogin-subdomain {subdomain} 
-    --onelogin-app-id {app_id} --aws-region {aws region} --profile default`
-
 ### How the process works
 
 #### Step 1. Provide OneLogin data.
@@ -227,14 +304,14 @@ valid OneLogin API credentials stored on the `onelogin.sdk.json` placed at the
 root of the repository, using this tool is as simple as following the prompts.
 
 ```sh
-> onelogin-aws-assume-role
+> onelogin-aws-role
 ```
 
 Or alternately save them to your AWS credentials file to enable faster access 
 from any terminal.
 
 ```sh
-> onelogin-aws-assume-role --profile profilename
+> onelogin-aws-role --profile profilename
 ```
 
 By default, the credentials only last for 1 hour, but you can 
@@ -298,29 +375,3 @@ You should find success with the following AWS CLI command.
 ```
 aws ec2 describe-instances
 ```
-
-## Development
-
-After checking out the repo, run `make test` to run tests.
-
-To release a new version:
- 1. Update the version number in `Makefile` and commit it.
- 1. Create a new git tag 
- 1. Run `make release` to build binaries
- 1. Run `git push --all` to push commit & tags
- 1. Create/edit the release on GitHub and include the binaries created above.
-
-## Contributing
-
-Bug reports and pull requests are welcome on GitHub at 
-https://github.com/synfinatic/onelogin-go-aws-assume-role. 
-
-## License
-
-The gem is available as open source under the terms of the [GPLv3 License](https://opensource.org/licenses/gpl-3.0)
-
-## Thanks
-
-This README and project is heavily based on and includes content from
-[OneLogin-Python-Go-AWS-Assume-Role](
-https://github.com/onelogin/onelogin-python-aws-assume-role).

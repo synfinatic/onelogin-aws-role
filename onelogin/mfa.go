@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	resty "github.com/go-resty/resty/v2"
-	log "github.com/sirupsen/logrus"
+	//	log "github.com/sirupsen/logrus"
 )
 
 type MFA struct {
@@ -77,7 +77,6 @@ func (mfa *MFA) OneLoginProtectPush(notify bool) (string, error) {
 	}
 
 	body, _ := json.Marshal(data)
-	log.Debugf("Push MFA: %s", body)
 	resp, err := mfa.client.R().
 		SetBody(body).
 		Post(mfa.CallbackUrl)

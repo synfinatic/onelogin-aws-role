@@ -36,6 +36,14 @@ type OneLoginUser struct {
 	Id        int32  `json:"id"`
 }
 
+// Common Status response
+type OneLoginStatus struct {
+	Error   bool   `json:"error"`
+	Code    uint16 `json:"code"`
+	Type    string `json:"type"`
+	Message string `json:"message"`
+}
+
 // Returns a new OneLogin struct with our AccessToken configured
 func NewOneLogin(clientid string, client_secret string, region string) *OneLogin {
 	o := OneLogin{}
@@ -74,4 +82,31 @@ func NewOneLogin(clientid string, client_secret string, region string) *OneLogin
 
 	o.AccessToken = result.AccessToken
 	return &o
+}
+
+type RateLimit struct {
+	Status OneLoginStatus `json:"status"`
+	Data   RateLimitData  `json:"data"`
+}
+
+type RateLimitData struct {
+	Limit     uint32 `json:"X-RateLimit-Limit"`
+	Remaining uint32 `json:"X-RateLimit-Remaining"`
+	Reset     uint32 `json:"X-RateLimit-Reset"`
+}
+
+// Not valid with Authentication Only tokens
+func (o *OneLogin) GetRateLimit() (*RateLimit, error) {
+	url := fmt.Sprintf("%s/auth/rate_limit", o.Url)
+	resp, err := o.Client.R().
+		SetResult(&RateLimit{}).
+		Post(url)
+	if err != nil {
+		return nil, fmt.Errorf("Unable to get rate_limit for %s: %s", url, err.Error())
+	} else if resp.IsError() {
+		return nil, fmt.Errorf("Unable to get rate_limit for %s: %s [%d]", url, resp.String(), resp.StatusCode())
+	}
+	result := resp.Result().(*RateLimit)
+	log.Debugf("RateLimit: %s", resp.String())
+	return result, nil
 }

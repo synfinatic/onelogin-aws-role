@@ -19,10 +19,16 @@ package main
  */
 
 import (
-	"github.com/alecthomas/kong"
-	"github.com/synfinatic/onelogin-aws-role/onelogin"
+	"fmt"
+	"os"
 
 	log "github.com/sirupsen/logrus"
+
+	"github.com/99designs/keyring"
+	"github.com/alecthomas/kong"
+	"github.com/synfinatic/onelogin-aws-role/aws"
+	"github.com/synfinatic/onelogin-aws-role/onelogin"
+	"golang.org/x/crypto/ssh/terminal"
 )
 
 // These variables are defined in the Makefile
@@ -78,6 +84,31 @@ func parse_args(cli *CLI) *kong.Context {
 	return ctx
 }
 
+var krConfigDefaults = keyring.Config{
+	ServiceName:              "OneLoginAWSRole",
+	FileDir:                  "~/.oneloginawsrole/keys/",
+	FilePasswordFunc:         fileKeyringPassphrasePrompt,
+	LibSecretCollectionName:  "oneloginawsrole",
+	KWalletAppID:             "onelogin-aws-role",
+	KWalletFolder:            "onelogin-aws-role",
+	KeychainTrustApplication: true,
+	WinCredPrefix:            "onelogin-aws-role",
+}
+
+func fileKeyringPassphrasePrompt(prompt string) (string, error) {
+	if password := os.Getenv("ONELOGIN_AWS_ROLE_FILE_PASSPHRASE"); password != "" {
+		return password, nil
+	}
+
+	fmt.Fprintf(os.Stderr, "%s: ", prompt)
+	b, err := terminal.ReadPassword(int(os.Stdin.Fd()))
+	if err != nil {
+		return "", err
+	}
+	fmt.Println()
+	return string(b), nil
+}
+
 func main() {
 	cli := CLI{}
 	_ = parse_args(&cli)
@@ -88,24 +119,44 @@ func main() {
 	}
 	c.MergeCLI(&cli)
 
+	kr, err := keyring.Open(krConfigDefaults)
+	if err != nil {
+		log.Fatalf("Unable to open key store: %s", err.Error())
+	}
+
 	o := onelogin.NewOneLogin(cli.ClientID, cli.ClientSecret, cli.OLRegion)
-	ols := onelogin.NewOneLoginSAML(o)
+	/*
+		_, err = o.GetRateLimit()
+		if err != nil {
+			log.Fatalf("%s", err.Error())
+		} else {
+			os.Exit(3)
+		}
+	*/
+	ols := onelogin.NewOneLoginSAML(o, &kr)
 	need_mfa, err := ols.GetAssertion(cli.Email, cli.Password, cli.Subdomain, cli.AppId, "")
 	if err != nil {
 		log.Fatalf("GetAssertion: %s", err.Error())
 	}
-	var ok bool
 	if need_mfa {
 		log.Debug("Need MFA")
-		ok, err = ols.OneLoginProtectPush(cli.AppId, 10)
+		ok, err := ols.OneLoginProtectPush(cli.AppId, 10)
 		if err != nil {
 			log.Fatalf("Error doing ProtectPush: %s", err.Error())
 		}
+		if !ok {
+			log.Fatalf("MFA push failed/timed out")
+		}
 	}
-	log.Debug("Checking result")
+	_, ok := ols.Assertion[cli.AppId]
 	if ok {
-		log.Info("Got SAML Assertion: %s", ols.Assertion[cli.AppId])
+		log.Infof("Got SAML Assertion:\n%s", ols.Assertion[cli.AppId])
 	} else {
 		log.Error("Unable to get SAML Assertion")
 	}
+	roles, err := aws.GetRoles(ols.Assertion[cli.AppId])
+	if err != nil {
+		log.Errorf("Unable to parse assertion: %s", err.Error())
+	}
+	fmt.Printf("Roles: %v", roles)
 }

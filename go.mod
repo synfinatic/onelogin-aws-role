@@ -3,7 +3,10 @@ module github.com/synfinatic/onelogin-aws-role
 go 1.15
 
 require (
+	github.com/99designs/keyring v1.1.6
 	github.com/alecthomas/kong v0.2.12
+	github.com/antchfx/xmlquery v1.3.3
+	github.com/aws/aws-sdk-go v1.36.23
 	github.com/go-resty/resty/v2 v2.3.0
 	github.com/goccy/go-yaml v1.8.4
 	github.com/kr/text v0.2.0 // indirect
