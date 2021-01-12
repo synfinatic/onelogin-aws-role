@@ -26,7 +26,6 @@ import (
 
 	"github.com/99designs/keyring"
 	"github.com/alecthomas/kong"
-	"github.com/synfinatic/onelogin-aws-role/aws"
 	"github.com/synfinatic/onelogin-aws-role/onelogin"
 	"golang.org/x/crypto/ssh/terminal"
 )
@@ -148,15 +147,15 @@ func main() {
 			log.Fatalf("MFA push failed/timed out")
 		}
 	}
-	_, ok := ols.Assertion[cli.AppId]
-	if ok {
-		log.Infof("Got SAML Assertion:\n%s", ols.Assertion[cli.AppId])
-	} else {
-		log.Error("Unable to get SAML Assertion")
-	}
-	roles, err := aws.GetRoles(ols.Assertion[cli.AppId])
+	assertion, err := ols.OneLogin.Cache.GetAssertion(cli.AppId)
 	if err != nil {
-		log.Errorf("Unable to parse assertion: %s", err.Error())
+		log.Fatalf("Unable to get SAML Assertion: %s", err.Error())
+	} else {
+		log.Infof("Got SAML Assertion:\n%s", assertion)
+	}
+	roles, err := ols.OneLogin.Cache.GetRoles(cli.AppId)
+	if err != nil {
+		log.Errorf("Unable to get roles: %s", err.Error())
 	}
 	fmt.Printf("Roles: %v", roles)
 }
