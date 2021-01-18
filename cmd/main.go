@@ -42,27 +42,27 @@ type RunContext struct {
 }
 
 type CLI struct {
-	LogLevel string `name:"loglevel" default:"warn" enum:"error,warn,debug" help:"Logging level"`
+	LogLevel string `kong:"arg" name:"loglevel" default:"warn" enum:"error,warn,debug" help:"Logging level"`
 	// AWS params
-	Account  uint64 `optional help:"AWS Account ID" env:"AWS_ACCOUNT_ID"`
-	Region   string `optional help:"AWS Region" env:"AWS_REGION"`
-	Role     string `optional help:"AWS Role to assume"`
-	Duration int    `optional help:"AWS credential duration (minutes)" default:60`
+	Account  uint64 `kong:"arg,optional" help:"AWS Account ID" env:"AWS_ACCOUNT_ID"`
+	Region   string `kong:"arg,optional" help:"AWS Region" env:"AWS_REGION"`
+	Role     string `kong:"arg,optional" help:"AWS Role to assume"`
+	Duration int    `kong:"arg,optional" help:"AWS credential duration (minutes)" default:"60"`
 
 	// OneLogin params
-	ClientID     string `optional help:"OneLogin ClientID" env:"OL_CLIENT_ID"`
-	ClientSecret string `optional help:"OneLogin Client Secret" env:"OL_CLIENT_SECRET"`
-	AppId        uint32 `optional help:"OneLogin App ID" env:"OL_APP_ID"`
-	Subdomain    string `optional help:"OneLogin Subdomain" env:"OL_SUBDOMAIN"`
-	Email        string `optional help:"OneLogin login email" env:"OL_EMAIL"`
-	Password     string `optional help:"OneLogin password" env:"OL_PASSWORD"`
-	OLRegion     string `optional help:"OneLogin region" default:"us" enum:"us,eu" env:"OL_REGION"`
-	MfaType      string `optional help:"OneLogin MFA name" env:"OL_MFA"`
-	MfaPush      bool   `optional help:"Use MFA Push with OneLogin Protect" env:"OL_MFA_PUSH"`
-	Mfa          int32  `optional help:"MFA Code"`
+	ClientID     string `kong:"arg,optional" help:"OneLogin ClientID" env:"OL_CLIENT_ID"`
+	ClientSecret string `kong:"arg,optional" help:"OneLogin Client Secret" env:"OL_CLIENT_SECRET"`
+	AppId        uint32 `kong:"arg,optional" help:"OneLogin App ID" env:"OL_APP_ID"`
+	Subdomain    string `kong:"arg,optional" help:"OneLogin Subdomain" env:"OL_SUBDOMAIN"`
+	Email        string `kong:"arg,optional" help:"OneLogin login email" env:"OL_EMAIL"`
+	Password     string `kong:"arg,optional" help:"OneLogin password" env:"OL_PASSWORD"`
+	OLRegion     string `kong:"arg,optional" help:"OneLogin region" default:"us" enum:"us,eu" env:"OL_REGION"`
+	MfaType      string `kong:"arg,optional" help:"OneLogin MFA name" env:"OL_MFA"`
+	MfaPush      bool   `kong:"arg,optional" help:"Use MFA Push with OneLogin Protect" env:"OL_MFA_PUSH"`
+	Mfa          int32  `kong:"arg,optional" help:"MFA Code"`
 
 	// Commands
-	Exec ExecCmd `cmd help:"Execute command using specified AWS Role." default:"1"`
+	Exec ExecCmd `kong:"cmd" help:"Execute command using specified AWS Role." default:"1"`
 	//	Metadata MetadataCmd `cmd help:"Start metadata service."`
 
 }
