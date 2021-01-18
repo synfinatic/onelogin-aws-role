@@ -14,6 +14,7 @@ import (
 
 type OneLogin struct {
 	Client      *resty.Client
+	Cache       *OneLoginCache
 	Url         string // api url for onelogin
 	AccessToken string // generated via OAuth2.  Required for all other API calls
 
@@ -22,9 +23,9 @@ type OneLogin struct {
 type AccessTokenResponse struct {
 	AccessToken string `json:"access_token"`
 	CreatedAt   string `json:"created_at"`
-	ExpiresIn   int32  `json:"expires_in"`
+	ExpiresIn   int64  `json:"expires_in"`
 	TokenType   string `json:"token_type"`
-	AccountId   int32  `json:"account_id"`
+	AccountId   int64  `json:"account_id"`
 }
 
 // Not used by this code, but is common to many other API calls
@@ -33,7 +34,7 @@ type OneLoginUser struct {
 	Email     string `json:"email"`
 	Firstname string `json:"firstname"`
 	Lastname  string `json:"lastname"`
-	Id        int32  `json:"id"`
+	Id        int64  `json:"id"`
 }
 
 // Common Status response
@@ -46,30 +47,40 @@ type OneLoginStatus struct {
 
 // Returns a new OneLogin struct with our AccessToken configured
 func NewOneLogin(clientid string, client_secret string, region string) *OneLogin {
-	o := OneLogin{}
-	o.Url = fmt.Sprintf("https://api.%s.onelogin.com", region)
-	o.Client = resty.New()
-	o.Client.SetHeader("Content-Type", "application/json")
-	o.Client.SetHeader("Accept", "application/json")
-
-	data := map[string]string{
-		"grant_type": "client_credentials",
+	cache := LoadOneLoginCache("")
+	o := OneLogin{
+		Cache: cache,
 	}
 
-	url := fmt.Sprintf("%s/auth/oauth2/v2/token", o.Url)
-	body, _ := json.Marshal(data)
-	resp, err := o.Client.R().
-		SetBasicAuth(clientid, client_secret).
-		SetResult(&AccessTokenResponse{}).
-		SetBody(body).
-		Post(url)
-	if err != nil {
-		log.Fatalf("Unable to auth with clientid/client_secret: %s", err)
-	} else if resp.IsError() {
-		log.Fatalf("Unable auth with clientid/client_secret: %s [%d]", resp.String(), resp.StatusCode())
-	}
+	token, err := o.Cache.GetAccessToken()
+	if err != nil || token == "" {
 
-	result := resp.Result().(*AccessTokenResponse)
+		o.Url = fmt.Sprintf("https://api.%s.onelogin.com", region)
+		o.Client = resty.New()
+		o.Client.SetHeader("Content-Type", "application/json")
+		o.Client.SetHeader("Accept", "application/json")
+
+		data := map[string]string{
+			"grant_type": "client_credentials",
+		}
+
+		url := fmt.Sprintf("%s/auth/oauth2/v2/token", o.Url)
+		body, _ := json.Marshal(data)
+		resp, err := o.Client.R().
+			SetBasicAuth(clientid, client_secret).
+			SetResult(&AccessTokenResponse{}).
+			SetBody(body).
+			Post(url)
+		if err != nil {
+			log.Fatalf("Unable to auth with clientid/client_secret: %s", err)
+		} else if resp.IsError() {
+			log.Fatalf("Unable auth with clientid/client_secret: %s [%d]", resp.String(), resp.StatusCode())
+		}
+
+		result := resp.Result().(*AccessTokenResponse)
+		token = result.AccessToken
+		o.Cache.SaveAccessToken(result)
+	}
 	//	result.Status.Check(true)
 
 	//	if result.Status.Error {
@@ -77,10 +88,9 @@ func NewOneLogin(clientid string, client_secret string, region string) *OneLogin
 	//	}
 
 	// make other API calls shorter
-	o.Client.SetAuthToken(result.AccessToken).
+	o.Client.SetAuthToken(token).
 		SetHeader("Content-Type", "application/json")
 
-	o.AccessToken = result.AccessToken
 	return &o
 }
 
