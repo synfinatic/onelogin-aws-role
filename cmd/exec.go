@@ -6,8 +6,8 @@ import (
 )
 
 type ExecCmd struct {
-	Cmd  string   `kong:"arg,required" name:"command" help:"Command to execute" type:"path"`
-	Args []string `kong:"arg,optional" name:"args" help:"Associated arguments for the command"`
+	Cmd  string   `arg required name:"command" type:"path" help:"Command to execute"`
+	Args []string `arg optional name:"args" help:"Associated arguments for the command"`
 }
 
 func (e *ExecCmd) Run(ctx *RunContext) error {
