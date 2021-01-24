@@ -16,19 +16,54 @@
  1. Another golang program [allcloud-io/clisso](https://github.com/allcloud-io/clisso)
  1. Another secret mgmt library for OSX/Linux: [tmc/keyring](https://github.com/tmc/keyring)
 
-# Security
+## Security
 
  1. The OAuth2 AccessToken is good for 10hrs and should be cached to avoid rate limiting
     This is perfectly safe as long as the creds aren't exposed and someone uses them
     to DoS us due to the 5000/req/hr/account.  (account, not user?)
- 1. User Login Session tokens may require MFA and expire after 2 minutes
+ 1. SAML Assertion requires OneLogin username/password
+ 1. SAML Assertion may require MFA
  1. The SAML assertion is only good for a service defined number of minutes?
     AWS SAML is for a few minutes.
 
-# Challenges
+## Challenges
 
  1. The onelogin-go-sdk is neutered and doesn't support MFA :-/
  1. Need to see how `--loop` feature is supported?  Login Session Tokens can't be used for long periods of time?
     Pretty sure this doesn't automate authentication!  Looks like it merely 
-    automates running the tool again which is _very_ different (requires you to re-auth)
+    automates running the tool again which is _very_ different (requires you to
+    manually re-auth)
 
+## API Workflow
+
+ 1. ClientID/Secret ==> OneLogin Generate Token
+    * Returns Token good for 10hrs
+    * Should be cached 
+    * Can be done transparent to user
+ 1. Token, Username, Password, AppID ==> OneLogin SAML Assertion 
+    * Returns Assertion OR MFA Request 
+        * MFA request?  Send MFA  ==> OneLogin Verify Factor
+        * Interactive required if MFA
+    * AWS SAML Assertions are only good for a few minutes 
+    * Is good for 1 or more roles in 1 or more AWS Accounts
+    * Password should be stored in KeyChain
+ 1. SAML Assertion, Role ==> AWS 
+    * Returns STS Token good for 15min to 12hrs (1hr default)
+    * Can write to ~/.aws/config & ~/.aws/authentication or set shell ENV
+
+## How users should use:
+
+ 1. Select AppID or Role?
+    * AppID's contain multiple roles across one or more AWS accounts which
+        is confusing
+ 1. If user doesn't provide on CLI, prompt
+ 1. Need a config file which maps AppID => AWS Role(s)
+    * AppID's should have an alias
+    * Role ARN's should have an alias
+ 1. If AppID alias:
+    * Get all the STS tokens for all the roles
+    * Write to AWS config files
+    * Don't choose a role 
+ 1. If Role Alias:
+    * Get STS token for that role 
+    * Execute command/load ENV for that role

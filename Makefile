@@ -137,3 +137,6 @@ darwin: $(DARWIN_BIN)  ## Build MacOS/x86_64 binary
 $(DARWIN_BIN): $(wildcard */*.go) $(DIST_DIR)
 	GOARCH=amd64 GOOS=darwin go build -ldflags='$(LDFLAGS)' -o $(DARWIN_BIN) cmd/*.go
 	@echo "Created: $(DARWIN_BIN)"
+
+workflow.png: workflow.dot
+	dot -oworkflow.png -Tpng workflow.dot
