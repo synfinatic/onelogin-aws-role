@@ -1,5 +1,6 @@
 package main
 
+/*
 import (
 	"github.com/onelogin/onelogin-go-sdk/pkg/client"
 	"github.com/onelogin/onelogin-go-sdk/pkg/oltypes"
@@ -37,3 +38,4 @@ func OneLoginGetApp(c *client.APIClient, appid int32) (*apps.App, error) {
 	log.Debugf("getting AppId: %d", appid)
 	return c.Services.AppsV2.GetOne(appid)
 }
+*/

@@ -66,4 +66,18 @@
     * Don't choose a role 
  1. If Role Alias:
     * Get STS token for that role 
-    * Execute command/load ENV for that role
+    * Execute command/load ENV for that roles
+
+
+## Commands
+
+ * Revoke - Revoke current AuthToken which is automatically generated
+    * No args- just config
+ * Role   - Get one AWS Role STS values and print it out
+    * role alias
+ * Exec   - Get one AWS Role STS value and run command (like Role)
+    * role alias
+ * AppId  - Get all AWS Role STS values (cache for Role/Exec)
+    * appid alias
+ * Aliases - Print all Role & AppId with aliases (should show when expires)
+    * no args- just config

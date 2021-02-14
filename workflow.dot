@@ -45,7 +45,7 @@ digraph g {
     Prompt_MFA [label="Prompt User for MFA code"]
 
     Send_MFA -> GET_SAML_Assertion [label="Has SAML"]
-    Send_MFA [label="Send MFA Code" shape=diamond]
+    Send_MFA [label="Send MFA Code?" shape=diamond]
     Send_MFA -> Prompt_MFA [label="Invalid code"]
 
     Push_MFA -> Poll_MFA
@@ -57,15 +57,15 @@ digraph g {
 
     Have_RoleAlias [label="Has Role Alias?" shape=diamond]
     Have_RoleAlias -> Role_Expired [label="Yes"]
-    Role_Expired [label="Has Role STS Token Expired?"]
+    Role_Expired [label="Has Role STS Token Expired?" shape=diamond]
     Role_Expired -> Check_EXEC [label="No"]
     Role_Expired -> Lookup_AppId [label="Yes"]
 
     Lookup_AppId [label="Lookup AppID"]
     Lookup_AppId -> SAML_Assert
     Have_RoleAlias -> Prompt [label="No"]
-    Prompt [label="Prompt For Role/App Alias"]
-    Prompt -> Have_AppAlias
+    Prompt [label="Prompt for Role/App Alias"]
+    Prompt -> Role_Expired
 
     GET_SAML_Assertion [label="Load SAML Assertion"]
     GET_SAML_Assertion -> One_Role
