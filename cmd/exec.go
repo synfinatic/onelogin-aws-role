@@ -6,9 +6,12 @@ import (
 )
 
 type ExecCmd struct {
-	Name   string `arg required help:"AWS Role alias name"`
+	Name string `arg required help:"AWS Role alias name"`
+
+	// AWS Params
 	Region string `optional short:"r" help:"AWS Region" env:"AWS_DEFAULT_REGION"`
 
+	// Command
 	Cmd  string   `arg required name:"command" help:"Command to execute"`
 	Args []string `arg optional name:"args" help:"Associated arguments for the command"`
 }

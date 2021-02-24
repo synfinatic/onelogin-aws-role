@@ -7,6 +7,7 @@ import (
 	"github.com/Songmu/prompter"
 	"github.com/davecgh/go-spew/spew"
 	log "github.com/sirupsen/logrus"
+	"github.com/synfinatic/onelogin-aws-role/aws"
 	"github.com/synfinatic/onelogin-aws-role/onelogin"
 )
 
@@ -61,5 +62,10 @@ func (cc *RoleCmd) Run(ctx *RunContext) error {
 		log.Errorf("Unable to get roles: %s", err.Error())
 	}
 	fmt.Printf("Roles: %v", roles)
+
+	_, err = aws.GetSTSSession(assertion, cli.Role.Name, "us-east-1", 3600)
+	if err != nil {
+		log.WithError(err).Fatal("Unable to get STSSession")
+	}
 	return nil
 }

@@ -8,9 +8,10 @@
  1. Shouldn't just spit out ENV vars and expect you to copy & paste.
     - Follow `aws-vault` example of executing programs (including a shell)
  1. Run an EC2-Metadata service like `aws-vault`?
+    - Not sure why that helps?  Maybe some kind of dev/test solution?
  1. Should use [External Sourcing](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-sourcing-external.html)
 	- Need to write the necessary info as a JSON blob which allows you to easily
-	define OneLogin as the means of accessing an AWS_PROFILE without having to 
+	define OneLogin as the means of accessing an AWS_PROFILE without having to
 	edit the ~/.aws/config file!   Note that we would need to impliment some level
 	of caching for this to work, but that seems reasonable :)
  1. Another golang program [allcloud-io/clisso](https://github.com/allcloud-io/clisso)
@@ -30,24 +31,31 @@
 
  1. The onelogin-go-sdk is neutered and doesn't support MFA :-/
  1. Need to see how `--loop` feature is supported?  Login Session Tokens can't be used for long periods of time?
-    Pretty sure this doesn't automate authentication!  Looks like it merely 
+    Pretty sure this doesn't automate authentication!  Looks like it merely
     automates running the tool again which is _very_ different (requires you to
     manually re-auth)
+
+## Files
+
+Probably should move to their own directory or something?
+
+ * $HOME/.onelogin.cache  -- SAML assertion cache (maybe move to /tmp or something?)
+ * $HOME/.onelogin.yaml -- config file
 
 ## API Workflow
 
  1. ClientID/Secret ==> OneLogin Generate Token
     * Returns Token good for 10hrs
-    * Should be cached 
+    * Should be cached
     * Can be done transparent to user
- 1. Token, Username, Password, AppID ==> OneLogin SAML Assertion 
-    * Returns Assertion OR MFA Request 
+ 1. Token, Username, Password, AppID ==> OneLogin SAML Assertion
+    * Returns Assertion OR MFA Request
         * MFA request?  Send MFA  ==> OneLogin Verify Factor
         * Interactive required if MFA
-    * AWS SAML Assertions are only good for a few minutes 
+    * AWS SAML Assertions are only good for a few minutes
     * Is good for 1 or more roles in 1 or more AWS Accounts
     * Password should be stored in KeyChain
- 1. SAML Assertion, Role ==> AWS 
+ 1. SAML Assertion, Role ==> AWS
     * Returns STS Token good for 15min to 12hrs (1hr default)
     * Can write to ~/.aws/config & ~/.aws/authentication or set shell ENV
 
@@ -63,11 +71,10 @@
  1. If AppID alias:
     * Get all the STS tokens for all the roles
     * Write to AWS config files
-    * Don't choose a role 
+    * Don't choose a role
  1. If Role Alias:
-    * Get STS token for that role 
+    * Get STS token for that role
     * Execute command/load ENV for that roles
-
 
 ## Commands
 
@@ -77,6 +84,7 @@
     * role alias
  * Exec   - Get one AWS Role STS value and run command (like Role)
     * role alias
+    * [command] <args>
  * AppId  - Get all AWS Role STS values (cache for Role/Exec)
     * appid alias
  * Aliases - Print all Role & AppId with aliases (should show when expires)

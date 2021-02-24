@@ -47,6 +47,7 @@ type CLI struct {
 	Role  RoleCmd  `cmd help:"Fetch AWS STS Token for a given Role"`
 	AppId AppIdCmd `cmd help:"Fetch all AWS STS Tokens for a given AppID"`
 	Exec  ExecCmd  `cmd help:"Execute command using specified AWS Role."`
+	// Login LoginCmd `cmd help:""`  // Is this like Role?
 	// Revoke -- much later
 	// Aliases -- print all role/appid aliases
 }

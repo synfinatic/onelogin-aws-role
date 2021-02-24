@@ -125,7 +125,7 @@ func (c *ConfigFile) GetRoleArn(alias string) (string, error) {
  */
 func (c *ConfigFile) GetApp(alias_or_id string) (*AppConfig, error) {
 	for id, val := range *c.Apps {
-		if val.Alias == alias_or_id || string(id) == alias_or_id {
+		if val.Alias == alias_or_id || fmt.Sprintf("%d", id) == alias_or_id {
 			return &val, nil
 		}
 	}
@@ -142,6 +142,9 @@ func (c *ConfigFile) GetAppIdForRole(alias string) (uint32, error) {
 		}
 		for _, role := range *app.Roles {
 			if role.Alias == alias {
+				return id, nil
+			}
+			if role.Arn == alias {
 				return id, nil
 			}
 		}
