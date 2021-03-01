@@ -19,15 +19,10 @@ package main
  */
 
 import (
-	"fmt"
-	"os"
-
 	log "github.com/sirupsen/logrus"
 
-	"github.com/99designs/keyring"
 	"github.com/alecthomas/kong"
 	"github.com/synfinatic/onelogin-aws-role/onelogin"
-	"golang.org/x/crypto/ssh/terminal"
 )
 
 // These variables are defined in the Makefile
@@ -39,32 +34,22 @@ var CommitID = "unknown"
 type RunContext struct {
 	OneLogin *onelogin.OneLogin
 	Kctx     *kong.Context
+	Cli      *CLI
+	Config   *ConfigFile
 }
 
 type CLI struct {
-	LogLevel string `kong:"arg" name:"loglevel" default:"warn" enum:"error,warn,debug" help:"Logging level"`
-	// AWS params
-	Account  uint64 `kong:"arg,optional" help:"AWS Account ID" env:"AWS_ACCOUNT_ID"`
-	Region   string `kong:"arg,optional" help:"AWS Region" env:"AWS_REGION"`
-	Role     string `kong:"arg,optional" help:"AWS Role to assume"`
-	Duration int    `kong:"arg,optional" help:"AWS credential duration (minutes)" default:"60"`
-
-	// OneLogin params
-	ClientID     string `kong:"arg,optional" help:"OneLogin ClientID" env:"OL_CLIENT_ID"`
-	ClientSecret string `kong:"arg,optional" help:"OneLogin Client Secret" env:"OL_CLIENT_SECRET"`
-	AppId        uint32 `kong:"arg,optional" help:"OneLogin App ID" env:"OL_APP_ID"`
-	Subdomain    string `kong:"arg,optional" help:"OneLogin Subdomain" env:"OL_SUBDOMAIN"`
-	Email        string `kong:"arg,optional" help:"OneLogin login email" env:"OL_EMAIL"`
-	Password     string `kong:"arg,optional" help:"OneLogin password" env:"OL_PASSWORD"`
-	OLRegion     string `kong:"arg,optional" help:"OneLogin region" default:"us" enum:"us,eu" env:"OL_REGION"`
-	MfaType      string `kong:"arg,optional" help:"OneLogin MFA name" env:"OL_MFA"`
-	MfaPush      bool   `kong:"arg,optional" help:"Use MFA Push with OneLogin Protect" env:"OL_MFA_PUSH"`
-	Mfa          int32  `kong:"arg,optional" help:"MFA Code"`
+	// Common Arguments
+	LogLevel   string `optional short:"l" name:"loglevel" default:"warn" enum:"error,warn,debug" help:"Logging level"`
+	ConfigFile string `optional short:"c" name:"config" default:"" help:"Config file"`
 
 	// Commands
-	Exec ExecCmd `kong:"cmd" help:"Execute command using specified AWS Role." default:"1"`
-	//	Metadata MetadataCmd `cmd help:"Start metadata service."`
-
+	Role  RoleCmd  `cmd help:"Fetch AWS STS Token for a given Role"`
+	AppId AppIdCmd `cmd help:"Fetch all AWS STS Tokens for a given AppID"`
+	Exec  ExecCmd  `cmd help:"Execute command using specified AWS Role."`
+	// Login LoginCmd `cmd help:""`  // Is this like Role?
+	// Revoke -- much later
+	// Aliases -- print all role/appid aliases
 }
 
 func parse_args(cli *CLI) *kong.Context {
@@ -83,79 +68,24 @@ func parse_args(cli *CLI) *kong.Context {
 	return ctx
 }
 
-var krConfigDefaults = keyring.Config{
-	ServiceName:              "OneLoginAWSRole",
-	FileDir:                  "~/.oneloginawsrole/keys/",
-	FilePasswordFunc:         fileKeyringPassphrasePrompt,
-	LibSecretCollectionName:  "oneloginawsrole",
-	KWalletAppID:             "onelogin-aws-role",
-	KWalletFolder:            "onelogin-aws-role",
-	KeychainTrustApplication: true,
-	WinCredPrefix:            "onelogin-aws-role",
-}
-
-func fileKeyringPassphrasePrompt(prompt string) (string, error) {
-	if password := os.Getenv("ONELOGIN_AWS_ROLE_FILE_PASSPHRASE"); password != "" {
-		return password, nil
-	}
-
-	fmt.Fprintf(os.Stderr, "%s: ", prompt)
-	b, err := terminal.ReadPassword(int(os.Stdin.Fd()))
-	if err != nil {
-		return "", err
-	}
-	fmt.Println()
-	return string(b), nil
-}
-
 func main() {
 	cli := CLI{}
-	_ = parse_args(&cli)
+	ctx := parse_args(&cli)
 
-	c, err := LoadConfig()
+	c, err := LoadConfigFile(cli.ConfigFile)
 	if err != nil {
 		log.Fatalf("Unable to load config: %s", err.Error())
 	}
-	c.MergeCLI(&cli)
+	// c.MergeCLI(&cli)
 
-	kr, err := keyring.Open(krConfigDefaults)
+	run_ctx := RunContext{
+		OneLogin: nil,
+		Kctx:     ctx,
+		Cli:      &cli,
+		Config:   c,
+	}
+	err = ctx.Run(&run_ctx)
 	if err != nil {
-		log.Fatalf("Unable to open key store: %s", err.Error())
+		log.Fatalf("Error running command: %s", err.Error())
 	}
-
-	o := onelogin.NewOneLogin(cli.ClientID, cli.ClientSecret, cli.OLRegion)
-	/*
-		_, err = o.GetRateLimit()
-		if err != nil {
-			log.Fatalf("%s", err.Error())
-		} else {
-			os.Exit(3)
-		}
-	*/
-	ols := onelogin.NewOneLoginSAML(o, &kr)
-	need_mfa, err := ols.GetAssertion(cli.Email, cli.Password, cli.Subdomain, cli.AppId, "")
-	if err != nil {
-		log.Fatalf("GetAssertion: %s", err.Error())
-	}
-	if need_mfa {
-		log.Debug("Need MFA")
-		ok, err := ols.OneLoginProtectPush(cli.AppId, 10)
-		if err != nil {
-			log.Fatalf("Error doing ProtectPush: %s", err.Error())
-		}
-		if !ok {
-			log.Fatalf("MFA push failed/timed out")
-		}
-	}
-	assertion, err := ols.OneLogin.Cache.GetAssertion(cli.AppId)
-	if err != nil {
-		log.Fatalf("Unable to get SAML Assertion: %s", err.Error())
-	} else {
-		log.Infof("Got SAML Assertion:\n%s", assertion)
-	}
-	roles, err := ols.OneLogin.Cache.GetRoles(cli.AppId)
-	if err != nil {
-		log.Errorf("Unable to get roles: %s", err.Error())
-	}
-	fmt.Printf("Roles: %v", roles)
 }

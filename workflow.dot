@@ -1,0 +1,104 @@
+digraph g {
+    Start -> AT_Check 
+    AT_Check [label="Check AccessToken" shape=diamond]
+    AT_Check -> OAuth2 [label="Expired"]
+    OAuth2 [label="Generate New AccessToken"]
+    AT_Check -> Have_AppAlias [label="Valid"]
+    OAuth2 -> CacheOAuth2
+    CacheOAuth2 [label="Cache AccessToken"]
+    CacheOAuth2 -> Have_AppAlias 
+    Have_AppAlias [label="User provided AppID alias?" shape=diamond]
+    Have_AppAlias -> Have_RoleAlias [label="No"]
+    Have_AppAlias -> Has_Pass [label="Yes"]
+    Has_Pass [label="Password in KeyChain?" shape=diamond]
+    Has_Pass -> SAML_Assert [label="Yes"]
+    Has_Pass -> Prompt_Pass [label="No"]
+    Prompt_Pass -> SAML_Assert
+    Prompt_Pass [label="Prompt user for password"]
+
+    SAML_Assert -> SAML_Auth_Failed
+    SAML_Assert [label="Generate SAML Assertion"]
+    SAML_Auth_Failed [label="SAML Auth Failed?" shape=diamond]
+    SAML_Auth_Failed -> Prompt_Pass [label="Yes"]
+    SAML_Auth_Failed -> MFA_Required [label="No"]
+
+    MFA_Required [label="MFA Required?" shape=diamond]
+    MFA_Required -> Multiple_MFA [label="Yes"]
+    MFA_Required -> GET_SAML_Assertion [label="No"]
+
+    Multiple_MFA [label="Multiple MFA Configured?" shape=diamond]
+    Multiple_MFA -> MFA_Push [label="No"]
+    Multiple_MFA -> MFA_Preselect [label="Yes"]
+
+    MFA_Preselect [label="MFA PreSelected?" shape=diamond]
+    MFA_Preselect -> MFA_Push [label="Yes"]
+    MFA_Preselect -> Choose_MFA [label="No"]
+
+    MFA_Push [label="Use OneLogin Push MFA?" shape=diamond]
+    MFA_Push -> Push_MFA [label="Yes"]
+    MFA_Push -> Prompt_MFA [label="No"]
+
+    Choose_MFA [label="Prompt user for MFA Token"]
+    Choose_MFA -> MFA_Push
+
+    Prompt_MFA -> Send_MFA
+    Prompt_MFA [label="Prompt User for MFA code"]
+
+    Send_MFA -> GET_SAML_Assertion [label="Has SAML"]
+    Send_MFA [label="Send MFA Code?" shape=diamond]
+    Send_MFA -> Prompt_MFA [label="Invalid code"]
+
+    Push_MFA -> Poll_MFA
+    Push_MFA [label="Use OneLogin Push MFA"]
+
+    Poll_MFA -> Poll_MFA [label="No SAML"]
+    Poll_MFA -> GET_SAML_Assertion [label="Has SAML"]
+    Poll_MFA [label="User authorized Push?" shape=diamond]
+
+    Have_RoleAlias [label="Has Role Alias?" shape=diamond]
+    Have_RoleAlias -> Role_Expired [label="Yes"]
+    Role_Expired [label="Has Role STS Token Expired?" shape=diamond]
+    Role_Expired -> Check_EXEC [label="No"]
+    Role_Expired -> Lookup_AppId [label="Yes"]
+
+    Lookup_AppId [label="Lookup AppID"]
+    Lookup_AppId -> SAML_Assert
+    Have_RoleAlias -> Prompt [label="No"]
+    Prompt [label="Prompt for Role/App Alias"]
+    Prompt -> Role_Expired
+
+    GET_SAML_Assertion [label="Load SAML Assertion"]
+    GET_SAML_Assertion -> One_Role
+    One_Role [label="User Provided Role Alias?" shape=diamond]
+    One_Role -> Lookup_RoleARN [label="Yes"]
+    Lookup_RoleARN [label="Lookup Role ARN"]
+    Lookup_RoleARN -> Get_STSToken
+    Get_STSToken [label="Get STS Token"]
+    Get_STSToken -> Write_One_CFG
+
+    One_Role -> Get_One_STSSToken [label="No"]
+    Get_One_STSSToken [label="Get A STS Token"]
+    Get_One_STSSToken -> More_STS
+    More_STS [label="More Roles for AppID?" shape=diamond]
+    More_STS -> Get_One_STSSToken [label="Yes"]
+    More_STS -> Write_All_Cfgs [label="No"]
+    Write_All_Cfgs [label="Write all STS Tokens to Config"]
+    Write_All_Cfgs -> End
+    
+
+    Write_One_CFG [label="Write AWS Config"]
+    Write_One_CFG -> Check_EXEC
+
+    Check_EXEC [label="In Exec mode?" shape=diamond]
+    Check_EXEC -> Load_ENV [label="Yes"]
+    Load_ENV [label="Load ENV vars"]
+    Load_ENV -> Exec 
+    Exec [label="Execute Command"]
+    Exec -> End
+    
+    Check_EXEC -> Print_Env [label="No"]
+    Print_Env [label="Print ENV Vars"]
+    Print_Env -> End
+
+    End [label="Done"]
+}

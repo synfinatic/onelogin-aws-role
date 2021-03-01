@@ -7,6 +7,7 @@ package onelogin
 import (
 	"encoding/json"
 	"fmt"
+	"time"
 
 	resty "github.com/go-resty/resty/v2"
 	log "github.com/sirupsen/logrus"
@@ -45,13 +46,26 @@ type OneLoginStatus struct {
 	Message string `json:"message"`
 }
 
-// Returns a new OneLogin struct with our AccessToken configured
-func NewOneLogin(clientid string, client_secret string, region string) *OneLogin {
+/*
+ * Returns a new OneLogin struct with our AccessToken configured
+ *
+ * OneLogin OAuth2 tokens are good for 10hrs
+ */
+func NewOneLogin(clientid string, client_secret string, region string) (*OneLogin, error) {
 	cache := LoadOneLoginCache("")
 	o := OneLogin{
 		Cache: cache,
 	}
 
+	if clientid == "" {
+		return nil, fmt.Errorf("Missing client_id value in config file")
+	}
+	if client_secret == "" {
+		return nil, fmt.Errorf("Missing client_secret value in config file")
+	}
+	if region == "" {
+		region = "us"
+	}
 	token, err := o.Cache.GetAccessToken()
 	if err != nil || token == "" {
 
@@ -91,7 +105,31 @@ func NewOneLogin(clientid string, client_secret string, region string) *OneLogin
 	o.Client.SetAuthToken(token).
 		SetHeader("Content-Type", "application/json")
 
-	return &o
+	return &o, nil
+}
+
+// returns true if the given OAuth2 token has expired
+func (token *AccessTokenResponse) IsExpired() bool {
+	created_at, err := time.Parse("2006-01-02T15:04:05.000Z", token.CreatedAt)
+	if err != nil {
+		log.Fatalf("Unable to parse %s: %s", token.CreatedAt, err.Error())
+	}
+	expires_at := created_at.Add(time.Second * time.Duration(token.ExpiresIn))
+	now := time.Now()
+	if now.After(expires_at) {
+		return true
+	}
+	return false
+}
+
+// returns when our token expires
+func (token *AccessTokenResponse) ExpiresAt() string {
+	created_at, err := time.Parse("2006-01-02T15:04:05.000Z", token.CreatedAt)
+	if err != nil {
+		log.Fatalf("Unable to parse %s: %s", token.CreatedAt, err.Error())
+	}
+	expires_at := created_at.Add(time.Second * time.Duration(token.ExpiresIn))
+	return expires_at.Local().String()
 }
 
 type RateLimit struct {
@@ -105,7 +143,13 @@ type RateLimitData struct {
 	Reset     uint32 `json:"X-RateLimit-Reset"`
 }
 
-// Not valid with Authentication Only tokens
+/*
+ * There is a rate limit for generating auth tokens:
+ * https://developers.onelogin.com/api-docs/2/oauth20-tokens/generate-tokens-2
+ *
+ * This API call returns how many calls have been made.
+ * Not valid with Authentication Only tokens
+ */
 func (o *OneLogin) GetRateLimit() (*RateLimit, error) {
 	url := fmt.Sprintf("%s/auth/rate_limit", o.Url)
 	resp, err := o.Client.R().
