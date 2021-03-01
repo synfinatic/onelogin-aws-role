@@ -11,6 +11,11 @@ This is really useful for SRE/Engineering organizations that run complex
 environments with multiple AWS accounts, roles and many different people that 
 need periodic access as it saves manually generating and managing AWS credentials.
 
+## ***WARNING***
+
+This project doesn't work yet and the docs are bad.  Don't even bother telling me
+you are having problems because the answer is "duh".
+
 ## Why?
 
 Because the idea of running a [Java application](
