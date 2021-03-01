@@ -40,13 +40,13 @@ type RunContext struct {
 
 type CLI struct {
 	// Common Arguments
-	LogLevel   string `optional short:"l" name:"loglevel" default:"warn" enum:"error,warn,debug" help:"Logging level"`
-	ConfigFile string `optional short:"c" name:"config" default:"" help:"Config file"`
+	LogLevel   string `kong:"optional,short:'l',name:'loglevel',default:'warn',enum:'error,warn,debug',help:'Logging level'"`
+	ConfigFile string `kong:"optional,short:'c',name:'config',default:'',help:'Config file'"`
 
 	// Commands
-	Role  RoleCmd  `cmd help:"Fetch AWS STS Token for a given Role"`
-	AppId AppIdCmd `cmd help:"Fetch all AWS STS Tokens for a given AppID"`
-	Exec  ExecCmd  `cmd help:"Execute command using specified AWS Role."`
+	Role  RoleCmd  `kong:"cmd,help:'Fetch AWS STS Token for a given Role'"`
+	AppId AppIdCmd `kong:"cmd,help:'Fetch all AWS STS Tokens for a given AppID'"`
+	Exec  ExecCmd  `kong:"cmd,help:'Execute command using specified AWS Role.'"`
 	// Login LoginCmd `cmd help:""`  // Is this like Role?
 	// Revoke -- much later
 	// Aliases -- print all role/appid aliases
