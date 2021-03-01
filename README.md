@@ -40,21 +40,23 @@ Just run `make` to build a binary and copy it to a location in your `$PATH`.
 ## Settings
 
 OneLogin AWS Role has a single YAML configuration file: 
-`~/.onelogin.aws.role.yaml`
+`~/.onelogin.yaml`
 
 It contains the following sections:
 
-### OAuth2 Config
+### OneLogin Config
 
 This section defines the OAuth2 configuration necessary to talk to OneLogin
 API servers.  You will need to get this from your administrator.
 
 ```yaml
-oath_config:
-    client_id: "<string>"
-    client_secret: "<string>"
-    region: "<string>"
-    ip: "<string>
+client_id: <OneLogin Client ID>
+client_secret: <OneLogin Client Secret>
+region: <OneLogin Region>
+username: <OneLogin Username>
+subdomain: <Onelogin Subdomain>
+ip: <IP Address>
+mfa: <device_id|device_type>
 ```
 
 Where:
@@ -62,73 +64,58 @@ Where:
  * `client_id`  - OneLogin OAuth2 client ID (required)
  * `client_secret`  - OneLogin OAuth2 client secret (required)
  * `region`  - One of `us` or `eu` depending on OneLogin server region to use (required)
+ * `username` - Your OneLogin username/email address (required)
+ * `subdomain` - Your organization's OneLoging subdomain (required)
  * `ip`  - Specify the IP to be used on the method to retrieve the SAMLResponse in
     order to bypass MFA if that IP was previously whitelisted. (optional)
-
-### Authentication
-
-This section defines some basic information on how you will authenticate
-to OneLogin.
-
-```yaml
-auth:
-    username: "<string>"
-    subdomain: "<string>"
-    duration: <integer>
-```
-
-Where:
-
- * `username`  - Is your username (required)
- * `subdomain`  - Is your OneLogin subdomain in the URL where you login.  
-    XXXXX.onelogin.com (required)
- * `duration`  - How many seconds your AssumeRole credentials should last by default
-    (optional, default is 3600, minimum 900 and max 43200)
+ * `mfa` - Default device_id or device_type for MFA to skip prompting
 
 By default, the credentials only last for 1 hour, but you can 
 [edit that restriction on AWS and set a max of 12h session duration](
 https://aws.amazon.com/es/blogs/security/enable-federated-api-access-to-your-aws-resources-for-up-to-12-hours-using-iam-roles/).
 
-### Apps
+### AWS Account Config
 
 This section defines each of the AWS Account & Roles that may be used via
 AssumeRole.
 
 ```yaml
 apps:
-    app_id: <integer>
-        aws_account_id: <integer>
-            aws_role_name: "<string>"
-                profile: "<string>"
-                region: "<string>" 
+    <app_id>:
+        name: <Application Name>
+        alias: <Application Alias>
+        roles:
+			- arn: <Role ARN>
+              alias: <Role Alias>
+              region: <Default AWS Region>
+              duration: <Number of Seconds>
+              profile: <Profile Name>
 ```
 
 Where:
 
  * `app_id`  - Is the Application ID provided by your administrator (required)
- * `aws_account_id`  - AWS Account ID (required)
- * `aws_role_name`   - AWS Role name, not the full ARN (required)
+ * `name` - Name of the OneLogin Application (optional)
+ * `alias` - Alias for OneLogin Application (optional)
+ * `arn`   - AWS ARN to assume (required)
  * `profile`  - Name of AWS_PROFILE to write to `~/.aws/config` (optional)
  * `region`  - Configure the default AWS region.  Default: `us-east-1` (optional)
+ * `duration`  - How many seconds your AssumeRole credentials should last by default
+    (optional, default is 3600, minimum 900 and max 43200)
 
 Not that you can configure multiple roles for each account, multiple accounts for
 each applications and multiple applications.  While it is strongly advised that 
 you use unique profiles for each account+region combination, that is not required.
 
-###  Account Aliases
+###  AWS Account Aliases
 
 There is an optional section that can be created to give more
 human readable names to the account list.
 
 ```yaml
-accounts:
-    <integer>: "<string>"
+aws_accounts:
+    <account id>: <account alias/name>
 ```
-
-Where:
-
- * `<integer>` is the AWS Account ID
- * `<string>` is the account alias to use.
 
 Note if you do not have an alias set for a given AWS Account Id, it will try 
 calling `iam:ListAccountAliases` to determine the alias of the account.
@@ -144,11 +131,10 @@ This README and project is heavily based on and includes content from
 [OneLogin-Python-Go-AWS-Assume-Role](
 https://github.com/onelogin/onelogin-python-aws-assume-role).
 
+
+
 FIX BELOW THIS LINE
 ===================
-
-
-
 
 
 The onelogin-aws-assume-role utility uses the same settings file that
