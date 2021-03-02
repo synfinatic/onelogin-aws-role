@@ -47,6 +47,7 @@ type CLI struct {
 	Role  RoleCmd  `kong:"cmd,help:'Fetch AWS STS Token for a given Role'"`
 	AppId AppIdCmd `kong:"cmd,help:'Fetch all AWS STS Tokens for a given AppID'"`
 	Exec  ExecCmd  `kong:"cmd,help:'Execute command using specified AWS Role.'"`
+	List  ListCmd  `kong:"cmd,help:'List all role / appid aliases.'"`
 	// Login LoginCmd `cmd help:""`  // Is this like Role?
 	// Revoke -- much later
 	// Aliases -- print all role/appid aliases
