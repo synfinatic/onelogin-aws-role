@@ -85,7 +85,7 @@ apps:
         name: <Application Name>
         alias: <Application Alias>
         roles:
-			- arn: <Role ARN>
+            - arn: <Role ARN>
               alias: <Role Alias>
               region: <Default AWS Region>
               duration: <Number of Seconds>
@@ -119,7 +119,6 @@ aws_accounts:
 
 Note if you do not have an alias set for a given AWS Account Id, it will try 
 calling `iam:ListAccountAliases` to determine the alias of the account.
-
 
 ## License
 
