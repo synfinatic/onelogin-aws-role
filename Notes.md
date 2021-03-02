@@ -34,6 +34,7 @@
     Pretty sure this doesn't automate authentication!  Looks like it merely
     automates running the tool again which is _very_ different (requires you to
     manually re-auth)
+ 1. How are users supposed to know their device_id|device_id value for `mfa`?
 
 ## Files
 
