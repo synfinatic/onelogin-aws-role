@@ -40,7 +40,7 @@
 
 Probably should move to their own directory or something?
 
- * $HOME/.onelogin.cache  -- SAML assertion cache (maybe move to /tmp or something?)
+ * $HOME/.onelogin.cache  -- SAML assertion & bearer token cache
  * $HOME/.onelogin.yaml -- config file
 
 ## API Workflow
