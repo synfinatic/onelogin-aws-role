@@ -12,10 +12,10 @@ import (
 )
 
 type RoleCmd struct {
-	Name string `kong:"arg,required help:'AWS Role alias name'"`
+	Name string `kong:"arg,required,name='alias',help='AWS Role alias name'"`
 	// AWS params
-	Region   string `kong:"optional,short:'r',help:'AWS Region',env:'AWS_DEFAULT_REGION'"`
-	Duration int    `kong:"optional,short:'D',default:'60',help:'AWS credential duration (minutes)'"`
+	Region   string `kong:"optional,short='r',help='Override AWS Region',env='AWS_DEFAULT_REGION'"`
+	Duration int    `kong:"optional,short='D',default='60',help='AWS credential duration (minutes)'"`
 }
 
 func (cc *RoleCmd) Run(ctx *RunContext) error {
