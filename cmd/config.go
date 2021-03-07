@@ -41,9 +41,9 @@ type AppConfig struct {
 
 // Role config
 type RoleConfig struct {
-	Arn    string `yaml:"arn" header:"ARN"`
-	Alias  string `yaml:"alias" header:"Role Alias"`
-	Region string `yaml:"region" header:"Default Region"` // Default AWS Region
+	Arn     string `yaml:"arn" header:"ARN"`
+	Profile string `yaml:"profile" header:"AWS Profile"`
+	Region  string `yaml:"region" header:"Default Region"` // Default AWS Region
 }
 
 // Flattened Config for displaying report
@@ -54,7 +54,7 @@ type FlatConfig struct {
 	AppName     string `header:"App Name"`
 	AppAlias    string `header:"App Alias"`
 	Arn         string `header:"Role ARN"`
-	RoleAlias   string `header:"Role Alias"`
+	Profile     string `header:"$AWS_PROFILE"`
 	Region      string `header:"Default Region"`
 }
 
@@ -90,7 +90,7 @@ func (c *ConfigFile) GetFlatConfig() []FlatConfig {
 				AppName:     app.Name,
 				AppAlias:    app.Alias,
 				Arn:         role.Arn,
-				RoleAlias:   role.Alias,
+				Profile:     role.Profile,
 				Region:      role.Region,
 			})
 		}
@@ -141,13 +141,13 @@ func LoadConfigFile(path string) (*ConfigFile, error) {
 	return &c, nil
 }
 
-//  Get Roles.  Returns alias => ARN
+//  Get Roles.  Returns profile => ARN
 func (c *ConfigFile) GetRoles() *map[string]string {
 	ret := map[string]string{}
 
 	for _, app := range *c.Apps {
 		for _, role := range *app.Roles {
-			ret[role.Alias] = role.Arn
+			ret[role.Profile] = role.Arn
 		}
 	}
 	return &ret
@@ -163,16 +163,16 @@ func (c *ConfigFile) GetApps() *map[uint32]string {
 	return &ret
 }
 
-// Return the AWS Role ARN based on the alias
-func (c *ConfigFile) GetRoleArn(alias string) (string, error) {
+// Return the AWS Role ARN based on the profile
+func (c *ConfigFile) GetRoleArn(profile string) (string, error) {
 	for _, app := range *c.Apps {
 		for _, role := range *app.Roles {
-			if role.Alias == alias {
+			if role.Profile == profile {
 				return role.Arn, nil
 			}
 		}
 	}
-	return "", fmt.Errorf("Unable to locate Role: %s", alias)
+	return "", fmt.Errorf("Unable to locate Role: %s", profile)
 }
 
 /*
@@ -188,7 +188,7 @@ func (c *ConfigFile) GetApp(alias_or_id string) (*AppConfig, error) {
 }
 
 /*
- * Find the AppID for a Role Alias
+ * Find the AppID for a Role Profile
  */
 func (c *ConfigFile) GetAppIdForRole(alias string) (uint32, error) {
 	for id, app := range *c.Apps {
@@ -196,7 +196,7 @@ func (c *ConfigFile) GetAppIdForRole(alias string) (uint32, error) {
 			continue
 		}
 		for _, role := range *app.Roles {
-			if role.Alias == alias {
+			if role.Profile == alias {
 				return id, nil
 			}
 			if role.Arn == alias {
@@ -207,7 +207,7 @@ func (c *ConfigFile) GetAppIdForRole(alias string) (uint32, error) {
 	return 0, fmt.Errorf("Unable to find Role with alias or name: %s", alias)
 }
 
-func getHeader(v reflect.Value, fieldName string) (string, error) {
+func getHeaderTag(v reflect.Value, fieldName string) (string, error) {
 	field, ok := v.Type().FieldByName(fieldName)
 	if !ok {
 		return "", fmt.Errorf("Invalid field '%s' in %s", fieldName, v.Type().Name())
@@ -218,20 +218,20 @@ func getHeader(v reflect.Value, fieldName string) (string, error) {
 
 func (cf *ConfigFile) GetHeader(fieldName string) (string, error) {
 	v := reflect.ValueOf(*cf)
-	return getHeader(v, fieldName)
+	return getHeaderTag(v, fieldName)
 }
 
 func (ac *AppConfig) GetHeader(fieldName string) (string, error) {
 	v := reflect.ValueOf(*ac)
-	return getHeader(v, fieldName)
+	return getHeaderTag(v, fieldName)
 }
 
 func (rc *RoleConfig) GetHeader(fieldName string) (string, error) {
 	v := reflect.ValueOf(*rc)
-	return getHeader(v, fieldName)
+	return getHeaderTag(v, fieldName)
 }
 
 func (c *FlatConfig) GetHeader(fieldName string) (string, error) {
 	v := reflect.ValueOf(*c)
-	return getHeader(v, fieldName)
+	return getHeaderTag(v, fieldName)
 }
