@@ -163,16 +163,37 @@ func (c *ConfigFile) GetApps() *map[uint32]string {
 	return &ret
 }
 
-// Return the AWS Role ARN based on the profile
-func (c *ConfigFile) GetRoleArn(profile string) (string, error) {
+// Return the AWS Role ARN based on the profile (or itself if an ARN)
+func (c *ConfigFile) GetRoleArn(profile_or_arn string) (string, error) {
+	if strings.HasPrefix(profile_or_arn, "arn:aws:iam:") {
+		// looks like an ARN
+		return profile_or_arn, nil
+	}
+
 	for _, app := range *c.Apps {
 		for _, role := range *app.Roles {
-			if role.Profile == profile {
+			if role.Profile == profile_or_arn {
 				return role.Arn, nil
 			}
 		}
 	}
-	return "", fmt.Errorf("Unable to locate Role: %s", profile)
+	return "", fmt.Errorf("Unable to locate Role: %s", profile_or_arn)
+}
+
+// Returns the default region for a given role or error if not set
+func (c *ConfigFile) GetRoleRegion(profile string) (string, error) {
+	for _, app := range *c.Apps {
+		for _, role := range *app.Roles {
+			if role.Profile == profile {
+				if role.Region != "" {
+					return role.Region, nil
+				} else {
+					return "", fmt.Errorf("%s has no default region set", profile)
+				}
+			}
+		}
+	}
+	return "", fmt.Errorf("'%s' is not a profile which is defined in the config file", profile)
 }
 
 /*

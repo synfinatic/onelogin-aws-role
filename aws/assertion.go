@@ -118,5 +118,5 @@ func GetSTSSession(assertion string, role string, region string, duration int64)
 		Issuer:          *output.Issuer,
 	}
 	log.Debugf("STSSession = %s", spew.Sdump(ret))
-	return ret, fmt.Errorf("Well okay")
+	return ret, nil
 }
