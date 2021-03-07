@@ -4,6 +4,8 @@ github.com/Songmu/prompter v0.4.0 h1:4dEOeAegBsB7xU5kTvo6+YfSAdTD11UjA7FcDk8xk8A
 github.com/Songmu/prompter v0.4.0/go.mod h1:qXRyRoOsLZIF5fWoylqmM6xtUzwjvV+dg2hxfS3xikM=
 github.com/alecthomas/kong v0.2.12 h1:X3kkCOXGUNzLmiu+nQtoxWqj4U2a39MpSJR3QdQXOwI=
 github.com/alecthomas/kong v0.2.12/go.mod h1:kQOmtJgV+Lb4aj+I2LEn40cbtawdWJ9Y8QLq+lElKxE=
+github.com/alecthomas/kong v0.2.15 h1:HP3K1XuFn0wGSWFGVW67V+65tXw/Ht8FDYiLNAuX2Ug=
+github.com/alecthomas/kong v0.2.15/go.mod h1:kQOmtJgV+Lb4aj+I2LEn40cbtawdWJ9Y8QLq+lElKxE=
 github.com/antchfx/xmlquery v1.3.3 h1:HYmadPG0uz8CySdL68rB4DCLKXz2PurCjS3mnkVF4CQ=
 github.com/antchfx/xmlquery v1.3.3/go.mod h1:64w0Xesg2sTaawIdNqMB+7qaW/bSqkQm+ssPaCMWNnc=
 github.com/antchfx/xpath v1.1.10 h1:cJ0pOvEdN/WvYXxvRrzQH9x5QWKpzHacYO8qzCcDYAg=
