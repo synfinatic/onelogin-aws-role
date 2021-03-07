@@ -15,26 +15,18 @@ import (
  */
 
 type ListCmd struct {
-	Fields     []string `kong:"optional,arg,enum='AccountId,AccountName,AppId,AppName,AppAlias,Arn,RoleAlias,Region',help='Fields to display (default: AppAlias AccountName RoleAlias Arn)'"`
+	Fields     []string `kong:"optional,arg,enum='AccountId,AccountName,AppId,AppName,AppAlias,Arn,Profile,Region',help='Fields to display (default: AppAlias AccountName RoleAlias Arn)'"`
 	ListFields bool     `kong:"optional,short='f',help='List available fields'"`
 }
 
-// Fields match those in FlatConfig
+// Fields match those in FlatConfig.  Used when user doesn't have the `fields` in
+// their YAML config file or provided list on the CLI
 var defaultFields = []string{
 	"AppAlias",
 	"AccountName",
-	"RoleAlias",
+	"Profile",
 	"Arn",
 }
-
-const (
-	ALIAS       = "Role Alias"
-	ARN         = "ARN"
-	APPNAME     = "App Alias"
-	APP         = "AppID"
-	ACCOUNT     = "AccountID"
-	ACCOUNTNAME = "Account Alias"
-)
 
 func (cc *ListCmd) Run(ctx *RunContext) error {
 	cli := *ctx.Cli
@@ -44,27 +36,36 @@ func (cc *ListCmd) Run(ctx *RunContext) error {
 		return fmt.Errorf("Unable to open %s: %s", cli.ConfigFile, err.Error())
 	}
 
+	// If `-f` then print our fields and exit
 	fc := cfile.GetFlatConfig()
 	if cli.List.ListFields {
 		listFlatConfigFields(fc[0])
 		os.Exit(1)
 	}
 
-	// accounts
-	accounts := map[string]string{}
+	// List our AWS account aliases by abusing the FlatConfig struct
+	accounts := []FlatConfig{}
 	for k, v := range *cfile.Accounts {
-		accounts[fmt.Sprintf("%d", k)] = v
+		accounts = append(accounts, FlatConfig{
+			AccountId:   k,
+			AccountName: v,
+		})
 	}
-	report(ACCOUNT, ACCOUNTNAME, accounts)
+	accountList := []string{
+		"AccountId",
+		"AccountName",
+	}
+	generateReport(accounts, accountList)
 
 	fmt.Printf("\n\n")
 
+	// List our configured Roles
 	if len(cli.List.Fields) > 0 {
-		newReport(fc, cli.List.Fields)
+		generateReport(fc, cli.List.Fields)
 	} else if cfile.Fields != nil && len(*cfile.Fields) > 0 {
-		newReport(fc, *cfile.Fields)
+		generateReport(fc, *cfile.Fields)
 	} else {
-		newReport(fc, defaultFields)
+		generateReport(fc, defaultFields)
 	}
 	return nil
 }
@@ -72,7 +73,6 @@ func (cc *ListCmd) Run(ctx *RunContext) error {
 func listFlatConfigFields(fc FlatConfig) {
 	fields := map[string]string{}
 	t := reflect.TypeOf(fc)
-	//	v := reflect.ValueOf(fc)
 	for i := 0; i < t.NumField(); i++ {
 		field := t.Field(i)
 		fields[field.Name] = field.Tag.Get(FLAT_CONFIG_TAG)
@@ -103,7 +103,7 @@ func listFlatConfigFields(fc FlatConfig) {
 	}
 }
 
-func newReport(data []FlatConfig, fields []string) {
+func generateReport(data []FlatConfig, fields []string) {
 	headers := make([]interface{}, len(fields)) // must be interface
 	headerLen := map[string]int{}
 
@@ -153,30 +153,5 @@ func newReport(data []FlatConfig, fields []string) {
 			}
 		}
 		fmt.Printf(fstring, r...)
-	}
-}
-
-func report(key, value string, values map[string]string) {
-	// calculate max len of key & value columns
-	max_key := len(key)
-	max_value := len(value)
-	for k, v := range values {
-		if len(k) > max_key {
-			max_key = len(k)
-		}
-		if len(v) > max_value {
-			max_value = len(v)
-		}
-	}
-
-	// generate header
-	fstring := fmt.Sprintf("%%-%ds | %%-%ds\n", max_key, max_value)
-	header := fmt.Sprintf(fstring, key, value)
-	fmt.Printf(header)
-	fmt.Printf("%s\n", strings.Repeat("=", len(header)-1))
-
-	// generate report values
-	for k, v := range values {
-		fmt.Printf(fstring, k, v)
 	}
 }
