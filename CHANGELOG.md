@@ -1,4 +1,7 @@
-# OneLogin Go AWS Assume Role Changelog
+# OneLogin AWS Role Changelog
 
 ## Unreleased
 
+## v0.1.0 - ??
+
+Initial release

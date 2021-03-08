@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 
-	"github.com/99designs/keyring"
 	"github.com/Songmu/prompter"
 	"github.com/davecgh/go-spew/spew"
 	log "github.com/sirupsen/logrus"
@@ -20,10 +19,6 @@ type RoleCmd struct {
 
 func (cc *RoleCmd) Run(ctx *RunContext) error {
 	cli := *ctx.Cli
-	kr, err := keyring.Open(krConfigDefaults)
-	if err != nil {
-		log.Fatalf("Unable to open key store: %s", err.Error())
-	}
 
 	o, err := onelogin.NewOneLogin(ctx.Config.ClientID, ctx.Config.ClientSecret, ctx.Config.Region)
 	if err != nil {
@@ -36,7 +31,7 @@ func (cc *RoleCmd) Run(ctx *RunContext) error {
 	}
 	passwd := prompter.Password("Enter your OneLogin password:")
 
-	ols := onelogin.NewOneLoginSAML(o, &kr)
+	ols := onelogin.NewOneLoginSAML(o)
 	need_mfa, err := ols.GetAssertion(ctx.Config.Username, passwd, ctx.Config.Subdomain, appid, "")
 	if err != nil {
 		return err
@@ -63,9 +58,15 @@ func (cc *RoleCmd) Run(ctx *RunContext) error {
 	}
 	fmt.Printf("Roles: %v", roles)
 
-	_, err = aws.GetSTSSession(assertion, cli.Role.Profile, "us-east-1", 3600)
+	session, err := aws.GetSTSSession(assertion, cli.Role.Profile, "us-east-1", 3600)
 	if err != nil {
 		log.WithError(err).Fatal("Unable to get STSSession")
 	}
-	return nil
+
+	kr, err := OpenKeyring(nil)
+	if err != nil {
+		log.WithError(err).Error("Unable to store session data in KeyChain")
+		return err
+	}
+	return kr.SaveSTSSession(cli.Role.Profile, session)
 }

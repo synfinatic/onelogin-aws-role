@@ -45,11 +45,10 @@ type CLI struct {
 	ConfigFile string `kong:"optional,short='c',name='config',default='~/.onelogin.yaml',help='Config file'"`
 
 	// Commands
-	Role  RoleCmd  `kong:"cmd,help='Fetch & cache AWS STS Token for a given Role'"`
-	AppId AppIdCmd `kong:"cmd,help='Fetch & cache all AWS STS Tokens for a given AppID'"`
-	Exec  ExecCmd  `kong:"cmd,help='Execute command using specified AWS Role/Alias.'"`
-	List  ListCmd  `kong:"cmd,help='List all role / appid aliases (default)',default='1'"`
-	// Login LoginCmd `cmd help:""`  // Is this like Role?
+	Role RoleCmd `kong:"cmd,help='Fetch & cache AWS STS Token for a given Role/Profile'"`
+	App  AppCmd  `kong:"cmd,help='Fetch & cache all AWS STS Tokens for a given OneLogin AppID'"`
+	Exec ExecCmd `kong:"cmd,help='Execute command using specified AWS Role/Profile.'"`
+	List ListCmd `kong:"cmd,help='List all role / appid aliases (default command)',default='1'"`
 	// Revoke -- much later
 }
 

@@ -8,14 +8,12 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
-	"github.com/99designs/keyring"
 	"github.com/aws/aws-sdk-go/service/sts"
 )
 
 type OneLoginSAML struct {
 	OneLogin *OneLogin
 	Response *SAMLResponse
-	keyring  *keyring.Keyring
 }
 
 type SAMLResponse struct {
@@ -42,10 +40,9 @@ func (sr *SAMLResponse) NewMFA(o *OneLogin) *MFA {
 	return &mfa
 }
 
-func NewOneLoginSAML(o *OneLogin, kr *keyring.Keyring) *OneLoginSAML {
+func NewOneLoginSAML(o *OneLogin) *OneLoginSAML {
 	ols := OneLoginSAML{
 		OneLogin: o,
-		keyring:  kr,
 	}
 
 	return &ols

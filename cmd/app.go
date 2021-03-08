@@ -5,14 +5,14 @@ import (
 // 	"github.com/synfinatic/onelogin-aws-role/onelogin"
 )
 
-type AppIdCmd struct {
+type AppCmd struct {
 	AppId string `kong:"arg,required,name='appid',help='OneLogin AppID alias or number'"`
 	// AWS Params
 	Region   string `kong:"optional,short='r',help='AWS Region',env='AWS_DEFAULT_REGION'"`
 	Duration int    `kong:"optional,short='D',default='60',help='AWS credential duration (minutes)'"`
 }
 
-func (ac *AppIdCmd) Run(ctx *RunContext) error {
+func (ac *AppCmd) Run(ctx *RunContext) error {
 	// _ := *ctx.Cli
 
 	return nil

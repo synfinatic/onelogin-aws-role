@@ -5,7 +5,6 @@ import (
 	"os"
 	"os/exec"
 
-	"github.com/99designs/keyring"
 	"github.com/Songmu/prompter"
 	"github.com/davecgh/go-spew/spew"
 	log "github.com/sirupsen/logrus"
@@ -27,14 +26,58 @@ type ExecCmd struct {
 
 func (e *ExecCmd) Run(ctx *RunContext) error {
 	cli := *ctx.Cli
-	kr, err := keyring.Open(krConfigDefaults)
+	session := aws.STSSession{}
+
+	kr, err := OpenKeyring(nil)
 	if err != nil {
-		log.Fatalf("Unable to open key store: %s", err.Error())
+		log.WithError(err).Warn("Unable to retrieve STS Session from Keychain")
+	} else {
+		err = kr.GetSTSSession(cli.Exec.Profile, &session)
+		if err != nil {
+			log.WithError(err).Warn("Unable to read STS Session from Keychain")
+		}
+		if session.Expired() {
+			log.Warn("Cached STS SessionToken has expired")
+		}
 	}
 
+	if session.Expired() {
+		session, err = Login(ctx)
+		if err != nil {
+			log.WithError(err).Fatal("Unable to get STSSession")
+		}
+		err = kr.SaveSTSSession(cli.Exec.Profile, session)
+		if err != nil {
+			log.WithError(err).Warn("Unable to cache STS Session in Keychain")
+		}
+	}
+
+	// set our ENV & execute the command
+	os.Setenv("AWS_ACCESS_KEY_ID", session.AccessKeyID)
+	os.Setenv("AWS_SECRET_ACCESS_KEY", session.SecretAccessKey)
+	os.Setenv("AWS_SESSION_TOKEN", session.SessionToken)
+	if cli.Exec.Region != "" {
+		os.Setenv("AWS_DEFAULT_REGION", cli.Exec.Region)
+	}
+	os.Setenv("AWS_SESSION_EXPIRATION", session.Expiration.String())
+	os.Setenv("AWS_ENABLED_PROFILE", cli.Exec.Profile)
+	os.Setenv("AWS_ROLE_ARN", session.RoleARN)
+
+	// ready our command and connect everything up
+	cmd := exec.Command(cli.Exec.Cmd, cli.Exec.Args...)
+	cmd.Stderr = os.Stderr
+	cmd.Stdout = os.Stdout
+	cmd.Stdin = os.Stdin
+
+	// just do it!
+	return cmd.Run()
+}
+
+func Login(ctx *RunContext) (aws.STSSession, error) {
+	cli := *ctx.Cli
 	cfile, err := LoadConfigFile(GetPath(cli.ConfigFile))
 	if err != nil {
-		return fmt.Errorf("Unable to open %s: %s", cli.ConfigFile, err.Error())
+		return aws.STSSession{}, fmt.Errorf("Unable to open %s: %s", cli.ConfigFile, err.Error())
 	}
 
 	o, err := onelogin.NewOneLogin(ctx.Config.ClientID, ctx.Config.ClientSecret, ctx.Config.Region)
@@ -44,14 +87,14 @@ func (e *ExecCmd) Run(ctx *RunContext) error {
 	log.Debugf("config = %s", spew.Sdump(ctx.Config))
 	appid, err := ctx.Config.GetAppIdForRole(cli.Exec.Profile)
 	if err != nil {
-		return err
+		return aws.STSSession{}, err
 	}
 	passwd := prompter.Password("Enter your OneLogin password")
 
-	ols := onelogin.NewOneLoginSAML(o, &kr)
+	ols := onelogin.NewOneLoginSAML(o)
 	need_mfa, err := ols.GetAssertion(ctx.Config.Username, passwd, ctx.Config.Subdomain, appid, "")
 	if err != nil {
-		return err
+		return aws.STSSession{}, err
 	}
 	if need_mfa {
 		log.Debug("Need MFA")
@@ -86,26 +129,5 @@ func (e *ExecCmd) Run(ctx *RunContext) error {
 		}
 	}
 
-	session, err := aws.GetSTSSession(assertion, role, region, cli.Exec.Duration*60)
-	if err != nil {
-		log.WithError(err).Fatal("Unable to get STSSession")
-	}
-
-	// set our ENV & execute the command
-	os.Setenv("AWS_ACCESS_KEY_ID", session.AccessKeyID)
-	os.Setenv("AWS_SECRET_ACCESS_KEY", session.SecretAccessKey)
-	os.Setenv("AWS_SESSION_TOKEN", session.SessionToken)
-	os.Setenv("AWS_DEFAULT_REGION", region)
-	os.Setenv("AWS_SESSION_EXPIRATION", session.Expiration.String())
-	os.Setenv("AWS_ENABLED_PROFILE", cli.Exec.Profile)
-	os.Setenv("AWS_ROLE_ARN", role)
-
-	// ready our command and connect everything up
-	cmd := exec.Command(cli.Exec.Cmd, cli.Exec.Args...)
-	cmd.Stderr = os.Stderr
-	cmd.Stdout = os.Stdout
-	cmd.Stdin = os.Stdin
-
-	// just do it!
-	return cmd.Run()
+	return aws.GetSTSSession(assertion, role, region, cli.Exec.Duration*60)
 }
