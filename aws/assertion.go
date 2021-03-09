@@ -14,6 +14,25 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+type STSSession struct {
+	RoleARN         string    `json:"ROLE_ARN"`
+	AccessKeyID     string    `json:"AWS_ACCESS_KEY_ID"`
+	SecretAccessKey string    `json:"AWS_SECRET_ACCESS_KEY"`
+	SessionToken    string    `json:"AWS_SESSION_TOKEN"`
+	Expiration      time.Time `json:"AWS_SESSION_EXPIRATION"`
+	Provider        string    `json:"STS_PROVIDER"`
+	Issuer          string    `json:"STS_ISSUER"`
+	Region          string    `json:"-"`
+}
+
+func (s *STSSession) Expired() bool {
+	// 5 seconds of fuzz
+	if s.Expiration.Before(time.Now().Add(time.Second * 5)) {
+		return true
+	}
+	return false
+}
+
 // get list of role ARNs in a SAML Assertion
 func GetRoles(assertion string) ([]string, error) {
 	roles := []string{}
@@ -72,17 +91,6 @@ func GetExpireTime(assertion string) (*time.Time, error) {
 	return nil, fmt.Errorf("Unable to locate NotOnOrAfter time in SAML Assertion")
 }
 
-type STSSession struct {
-	RoleARN         string
-	RoleID          string // what did I intend this to be?
-	AccessKeyID     string
-	SecretAccessKey string
-	SessionToken    string
-	Expiration      time.Time
-	Provider        string
-	Issuer          string
-}
-
 func GetSTSSession(assertion string, role string, region string, duration int64) (STSSession, error) {
 	ret := STSSession{}
 	principal, err := GetRolePrincipalARN(assertion, role)
@@ -116,6 +124,7 @@ func GetSTSSession(assertion string, role string, region string, duration int64)
 		SessionToken:    *creds.SessionToken,
 		Expiration:      *creds.Expiration,
 		Issuer:          *output.Issuer,
+		Region:          region,
 	}
 	log.Debugf("STSSession = %s", spew.Sdump(ret))
 	return ret, nil

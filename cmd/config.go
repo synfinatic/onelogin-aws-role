@@ -72,45 +72,6 @@ func GetPath(path string) string {
 	return strings.Replace(cfg, "~", os.Getenv("HOME"), 1)
 }
 
-func (c *ConfigFile) GetFlatConfig() []FlatConfig {
-	fc := []FlatConfig{}
-
-	for appid, app := range *c.Apps {
-		for _, role := range *app.Roles {
-			accountid, err := GetAccountFromARN(role.Arn)
-			if err != nil {
-				log.WithError(err).Warnf("Unable to get AWS Account ID for role '%s'", role.Arn)
-			}
-			a := *c.Accounts
-			accountname, _ := a[accountid]
-			fc = append(fc, FlatConfig{
-				AccountId:   accountid,
-				AccountName: accountname,
-				AppId:       appid,
-				AppName:     app.Name,
-				AppAlias:    app.Alias,
-				Arn:         role.Arn,
-				Profile:     role.Profile,
-				Region:      role.Region,
-			})
-		}
-	}
-	return fc
-}
-
-// Parses the AWS Account ID from an ARN
-func GetAccountFromARN(arn string) (uint64, error) {
-	fields := strings.Split(arn, ":")
-	if len(fields) < 5 || fields[4] == "" {
-		return 0, fmt.Errorf("unable to parse %s", arn)
-	}
-	val, err := strconv.ParseUint(fields[4], 10, 64)
-	if err != nil {
-		return 0, err
-	}
-	return val, nil
-}
-
 // Loads our config file at the given path
 func LoadConfigFile(path string) (*ConfigFile, error) {
 	fullpath := GetPath(path)
@@ -139,6 +100,65 @@ func LoadConfigFile(path string) (*ConfigFile, error) {
 	}
 
 	return &c, nil
+}
+
+func (c *ConfigFile) roleToFlatConfig(appid uint32, app AppConfig, role RoleConfig) *FlatConfig {
+	accountid, err := GetAccountFromARN(role.Arn)
+	if err != nil {
+		log.WithError(err).Warnf("Unable to get AWS Account ID for role '%s'", role.Arn)
+	}
+	a := *c.Accounts
+	accountname, _ := a[accountid]
+	fc := FlatConfig{
+		AccountId:   accountid,
+		AccountName: accountname,
+		AppId:       appid,
+		AppName:     app.Name,
+		AppAlias:    app.Alias,
+		Arn:         role.Arn,
+		Profile:     role.Profile,
+		Region:      role.Region,
+	}
+	return &fc
+}
+
+// Get all of the roles as a list of FlatConfig's
+func (c *ConfigFile) GetFlatConfig() []FlatConfig {
+	fc := []FlatConfig{}
+
+	for appid, app := range *c.Apps {
+		for _, role := range *app.Roles {
+			item := c.roleToFlatConfig(appid, app, role)
+			fc = append(fc, *item)
+		}
+	}
+	return fc
+}
+
+// Get the config for a role
+func (c *ConfigFile) GetRoleFlatConfig(profile_or_arn string) (*FlatConfig, error) {
+	for appid, app := range *c.Apps {
+		for _, role := range *app.Roles {
+			if profile_or_arn == role.Arn || profile_or_arn == role.Profile {
+				fc := c.roleToFlatConfig(appid, app, role)
+				return fc, nil
+			}
+		}
+	}
+	return nil, fmt.Errorf("Unable to find role or profile: %s", profile_or_arn)
+}
+
+// Parses the AWS Account ID from an ARN
+func GetAccountFromARN(arn string) (uint64, error) {
+	fields := strings.Split(arn, ":")
+	if len(fields) < 5 || fields[4] == "" {
+		return 0, fmt.Errorf("unable to parse %s", arn)
+	}
+	val, err := strconv.ParseUint(fields[4], 10, 64)
+	if err != nil {
+		return 0, err
+	}
+	return val, nil
 }
 
 //  Get Roles.  Returns profile => ARN
