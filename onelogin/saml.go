@@ -4,11 +4,20 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"strconv"
 	"time"
 
-	log "github.com/sirupsen/logrus"
-
+	"github.com/Songmu/prompter"
 	"github.com/aws/aws-sdk-go/service/sts"
+	log "github.com/sirupsen/logrus"
+)
+
+type MFAType int32
+
+const (
+	MFAInvalid MFAType = iota
+	MFAOneLoginPush
+	MFACode
 )
 
 type OneLoginSAML struct {
@@ -48,7 +57,7 @@ func NewOneLoginSAML(o *OneLogin) *OneLoginSAML {
 	return &ols
 }
 
-// Returns true/false if MFA is required
+// Returns true/false if MFA is required, list of devices is in ols.Response.Devices
 func (ols *OneLoginSAML) GetAssertion(username string, password string, subdomain string, app_id uint32, ip string) (bool, error) {
 	_, err := ols.OneLogin.Cache.GetAssertion(app_id)
 	if err == nil {
@@ -67,6 +76,7 @@ func (ols *OneLoginSAML) GetAssertion(username string, password string, subdomai
 		"subdomain":         subdomain,
 		"app_id":            fmt.Sprintf("%d", app_id),
 	}
+
 	if ip != "" {
 		data["ip_address"] = ip
 	}
@@ -97,14 +107,79 @@ func (ols *OneLoginSAML) GetAssertion(username string, password string, subdomai
 		log.Debugf("result.Data = %s", result.Data)
 		return false, nil
 	} else {
-		log.Debug("no Data")
+		log.Debug("no Data, MFA required")
 	}
 	ols.Response = result
 	return true, nil
 }
 
+func (ols *OneLoginSAML) GetMfaType(deviceId int32) (MFAType, error) {
+	for _, device := range ols.Response.Devices {
+		if deviceId == device.DeviceId {
+			if device.DeviceType == "OneLogin Protect" {
+				return MFAOneLoginPush, nil
+			} else {
+				return MFACode, nil
+			}
+		}
+	}
+	return MFAInvalid, fmt.Errorf("Configured MFA deviceId is not valid")
+}
+
+func (ols *OneLoginSAML) GetMfaTypeString(deviceId int32) (string, error) {
+	for _, device := range ols.Response.Devices {
+		if deviceId == device.DeviceId {
+			return device.DeviceType, nil
+		}
+	}
+	return "Unknown", fmt.Errorf("Configured MFA deviceId is not valid")
+
+}
+
+// Handles sending the MFA code or Push MFA.  Returns true/false if we got our Assertion
+func (ols *OneLoginSAML) SubmitMFA(deviceId int32, appid uint32) (bool, error) {
+	mfa_auth_pass := false
+
+	deviceType, err := ols.GetMfaType(deviceId)
+	if err != nil {
+		return false, err
+	}
+	switch deviceType {
+	case MFAOneLoginPush:
+		// FIXME: make this count configurable?
+		mfa_auth_pass, err := ols.OneLoginProtectPush(appid, 10)
+		if err != nil {
+			return mfa_auth_pass, fmt.Errorf("Error doing OneLogin Protect Push authentication: %s", err.Error())
+		}
+
+	case MFACode:
+		mfa_attempts := 10 // FIXME: make this count configurable?
+		name, err := ols.GetMfaTypeString(deviceId)
+		if err != nil {
+			return false, err
+		}
+		for i := 0; i < mfa_attempts && !mfa_auth_pass; i++ {
+			prompt := fmt.Sprintf("Enter your %s code", name)
+			mfa_str := prompter.Prompt(prompt, "")
+			mfa_code, err := strconv.ParseInt(mfa_str, 10, 32)
+			if err != nil {
+				log.Errorf("Invalid MFA Code.  Must be valid integer")
+				continue
+			}
+			mfa_auth_pass, err = ols.SubmitMFACode(appid, deviceId, int32(mfa_code))
+			if err != nil {
+				log.Error("Invalid MFA code.")
+			}
+		}
+
+	default:
+		return false, fmt.Errorf("Unsupported MFAType: %d", deviceType)
+	}
+	return mfa_auth_pass, nil
+}
+
 // Returns true/false if we got our assertion
-func (ols *OneLoginSAML) SubmitMFA(app_id uint32, device_id int32, mfa_code int32) (bool, error) {
+func (ols *OneLoginSAML) SubmitMFACode(app_id uint32, device_id int32, mfa_code int32) (bool, error) {
 	mfa := ols.Response.NewMFA(ols.OneLogin)
 	mfa.SetParam("app_id", fmt.Sprintf("%d", app_id))
 

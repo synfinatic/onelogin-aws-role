@@ -43,6 +43,9 @@ type CLI struct {
 	LogLevel string `kong:"optional,short='l',name='loglevel',default='warn',enum='error,warn,debug',help='Logging level [error|warn|debug]'"`
 	// have to hard code CONFIG_YAML value here because no way to do string interpolation in a strcture tag.
 	ConfigFile string `kong:"optional,short='c',name='config',default='~/.onelogin.yaml',help='Config file'"`
+	// AWS Params
+	Region   string `kong:"optional,short='r',help='AWS Region',env='AWS_DEFAULT_REGION'"`
+	Duration int64  `kong:"optional,short='d',help='AWS Session duration in minutes (default: 1hr)',default=60"`
 
 	// Commands
 	Role RoleCmd `kong:"cmd,help='Fetch & cache AWS STS Token for a given Role/Profile'"`
