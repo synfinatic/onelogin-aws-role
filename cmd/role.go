@@ -12,38 +12,83 @@ import (
 
 type RoleCmd struct {
 	Profile string `kong:"arg,required,name='profile',help='AWS Role alias name'"`
-	// AWS params
-	Region   string `kong:"optional,short='r',help='Override AWS Region',env='AWS_DEFAULT_REGION'"`
-	Duration int    `kong:"optional,short='D',default='60',help='AWS credential duration (minutes)'"`
 }
 
 func (cc *RoleCmd) Run(ctx *RunContext) error {
 	cli := *ctx.Cli
+	_, err := GetSession(ctx, cli.Role.Profile)
+	return err
+}
+
+func GetSession(ctx *RunContext, profile string) (aws.STSSession, error) {
+	session := aws.STSSession{}
+	kr, err := OpenKeyring(nil)
+	if err != nil {
+		log.WithError(err).Warn("Unable to retrieve STS Session from Keychain")
+	} else {
+		err = kr.GetSTSSession(profile, &session)
+		if err != nil {
+			log.WithError(err).Warn("Unable to read STS Session from Keychain")
+		}
+		if session.Expired() {
+			log.Warn("Cached STS SessionToken has expired")
+		}
+	}
+
+	if session.Expired() {
+		session, err = Login(ctx, profile)
+		if err != nil {
+			log.WithError(err).Fatal("Unable to get STSSession")
+		}
+		err = kr.SaveSTSSession(profile, session)
+		if err != nil {
+			log.WithError(err).Warn("Unable to cache STS Session in Keychain")
+		}
+	}
+	return session, nil
+}
+
+func Login(ctx *RunContext, profile string) (aws.STSSession, error) {
+	cli := *ctx.Cli
+	cfile, err := LoadConfigFile(GetPath(cli.ConfigFile))
+	if err != nil {
+		return aws.STSSession{}, fmt.Errorf("Unable to open %s: %s", cli.ConfigFile, err.Error())
+	}
 
 	o, err := onelogin.NewOneLogin(ctx.Config.ClientID, ctx.Config.ClientSecret, ctx.Config.Region)
 	if err != nil {
 		log.WithError(err).Fatal("Unable to connect to OneLogin")
 	}
 	log.Debugf("config = %s", spew.Sdump(ctx.Config))
-	appid, err := ctx.Config.GetAppIdForRole(cli.Role.Profile)
+	appid, err := ctx.Config.GetAppIdForRole(profile)
 	if err != nil {
-		return err
+		return aws.STSSession{}, err
 	}
-	passwd := prompter.Password("Enter your OneLogin password:")
 
-	ols := onelogin.NewOneLoginSAML(o)
-	need_mfa, err := ols.GetAssertion(ctx.Config.Username, passwd, ctx.Config.Subdomain, appid, "")
-	if err != nil {
-		return err
-	}
-	if need_mfa {
-		log.Debug("Need MFA")
-		ok, err := ols.OneLoginProtectPush(appid, 10)
-		if err != nil {
-			log.Fatalf("Error doing ProtectPush: %s", err.Error())
+	ols := &onelogin.OneLoginSAML{}
+	need_mfa := false
+	passwd_auth_pass := false
+	for !passwd_auth_pass {
+		passwd := prompter.Password("Enter your OneLogin password")
+
+		if passwd == "" {
+			return aws.STSSession{}, fmt.Errorf("OneLogin authentication aborted")
 		}
-		if !ok {
-			log.Fatalf("MFA push failed/timed out")
+		ols = onelogin.NewOneLoginSAML(o)
+		need_mfa, err = ols.GetAssertion(ctx.Config.Username, passwd, ctx.Config.Subdomain, appid, "")
+		if err == nil {
+			passwd_auth_pass = true
+		}
+	}
+
+	if need_mfa {
+		log.Info("MFA Required")
+		success, err := ols.SubmitMFA(ctx.Config.Mfa, appid)
+		if err != nil {
+			log.Fatal(err)
+		}
+		if !success {
+			log.Fatalf("MFA auth failed.")
 		}
 	}
 	assertion, err := ols.OneLogin.Cache.GetAssertion(appid)
@@ -52,21 +97,22 @@ func (cc *RoleCmd) Run(ctx *RunContext) error {
 	} else {
 		log.Infof("Got SAML Assertion:\n%s", assertion)
 	}
-	roles, err := ols.OneLogin.Cache.GetRoles(appid)
-	if err != nil {
-		log.Errorf("Unable to get roles: %s", err.Error())
-	}
-	fmt.Printf("Roles: %v", roles)
 
-	session, err := aws.GetSTSSession(assertion, cli.Role.Profile, "us-east-1", 3600)
+	role, err := cfile.GetRoleArn(profile)
 	if err != nil {
-		log.WithError(err).Fatal("Unable to get STSSession")
+		log.Fatal(err)
 	}
 
-	kr, err := OpenKeyring(nil)
-	if err != nil {
-		log.WithError(err).Error("Unable to store session data in KeyChain")
-		return err
+	var region string
+	if cli.Region != "" {
+		region = cli.Region
+	} else {
+		region, err = cfile.GetRoleRegion(profile)
+		if err != nil {
+			log.WithError(err).Warn("Unable to set default AWS region, falling back to us-east-1")
+			region = "us-east-1"
+		}
 	}
-	return kr.SaveSTSSession(cli.Role.Profile, session)
+
+	return aws.GetSTSSession(assertion, role, region, cli.Duration*60)
 }

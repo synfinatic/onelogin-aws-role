@@ -15,15 +15,22 @@ type KeyringCache struct {
 	config  keyring.Config
 }
 
+// https://github.com/99designs/keyring/blob/master/config.go
 var krConfigDefaults = keyring.Config{
-	ServiceName:              "OneLoginAWSRole",
-	FileDir:                  "~/.onelogin-aws-role/keys/",
-	FilePasswordFunc:         fileKeyringPassphrasePrompt,
-	LibSecretCollectionName:  "oneloginawsrole",
-	KWalletAppID:             "onelogin-aws-role",
-	KWalletFolder:            "onelogin-aws-role",
-	KeychainTrustApplication: true,
-	WinCredPrefix:            "onelogin-aws-role",
+	ServiceName: "OneLoginAWSRole", // generic
+	// OSX Keychain
+	KeychainName:                   "OneLoginAWSRole",
+	KeychainTrustApplication:       false,
+	KeychainSynchronizable:         false,
+	KeychainAccessibleWhenUnlocked: false,
+	// KeychainPasswordFunc: ???,
+	// Other systems below this line
+	FileDir:                 "~/.onelogin-aws-role/keys/",
+	FilePasswordFunc:        fileKeyringPassphrasePrompt,
+	LibSecretCollectionName: "oneloginawsrole",
+	KWalletAppID:            "onelogin-aws-role",
+	KWalletFolder:           "onelogin-aws-role",
+	WinCredPrefix:           "onelogin-aws-role",
 }
 
 func fileKeyringPassphrasePrompt(prompt string) (string, error) {
