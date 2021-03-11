@@ -136,10 +136,18 @@ func (ols *OneLoginSAML) GetMfaTypeString(deviceId int32) (string, error) {
 
 }
 
+// Returns the deviceId of a MFA device that the user selects
+func (ols *OneLoginSAML) PromptMFA() (int32, error) {
+	return 0, nil
+}
+
 // Handles sending the MFA code or Push MFA.  Returns true/false if we got our Assertion
 func (ols *OneLoginSAML) SubmitMFA(deviceId int32, appid uint32) (bool, error) {
 	mfa_auth_pass := false
 
+	if deviceId == 0 {
+		deviceId = SelectMfaDevice(ols.Response.Devices)
+	}
 	deviceType, err := ols.GetMfaType(deviceId)
 	if err != nil {
 		return false, err
@@ -147,7 +155,7 @@ func (ols *OneLoginSAML) SubmitMFA(deviceId int32, appid uint32) (bool, error) {
 	switch deviceType {
 	case MFAOneLoginPush:
 		// FIXME: make this count configurable?
-		mfa_auth_pass, err := ols.OneLoginProtectPush(appid, 10)
+		mfa_auth_pass, err = ols.OneLoginProtectPush(appid, 10)
 		if err != nil {
 			return mfa_auth_pass, fmt.Errorf("Error doing OneLogin Protect Push authentication: %s", err.Error())
 		}
@@ -214,6 +222,7 @@ func (ols *OneLoginSAML) OneLoginProtectPush(app_id uint32, tries uint32) (bool,
 	mfa := ols.Response.NewMFA(ols.OneLogin)
 	mfa.SetParam("app_id", fmt.Sprintf("%d", app_id))
 
+	log.Info("Sending MFA Authentication Request via OneLogin Protect Push")
 	resp, err := mfa.OneLoginProtectPush(true)
 	if err != nil {
 		return false, err
@@ -234,6 +243,9 @@ func (ols *OneLoginSAML) OneLoginProtectPush(app_id uint32, tries uint32) (bool,
 		}
 		log.Debugf("OLPP result: %s", resp)
 		err = json.Unmarshal([]byte(resp), &sr)
+		if err != nil {
+			log.WithError(err).Fatalf("Error parsing JSON response")
+		}
 	}
 
 	if sr.Data != "" {
@@ -247,9 +259,11 @@ func (ols *OneLoginSAML) OneLoginProtectPush(app_id uint32, tries uint32) (bool,
 		if err != nil {
 			log.Warn(err.Error())
 		}
+		log.Error("returning true")
 		return true, nil
 	}
 	// timed out
+	log.Error("returning false")
 	return false, nil
 }
 

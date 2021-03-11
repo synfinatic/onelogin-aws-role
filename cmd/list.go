@@ -7,7 +7,8 @@ import (
 	"sort"
 	"strings"
 
-	log "github.com/sirupsen/logrus"
+	"github.com/synfinatic/onelogin-aws-role/utils"
+	//	log "github.com/sirupsen/logrus"
 )
 
 /*
@@ -55,18 +56,30 @@ func (cc *ListCmd) Run(ctx *RunContext) error {
 		"AccountId",
 		"AccountName",
 	}
-	generateReport(accounts, accountList)
+	// manually convert our []FlatConfig into []TableStruct because Go is lame
+	ts := []utils.TableStruct{}
+	for _, x := range accounts {
+		ts = append(ts, x)
+	}
+	utils.GenerateTable(ts, accountList)
 
 	fmt.Printf("\n\n")
 
+	// manually convert our []FlatConfig into []TableStruct because Go is lame
+	ts = []utils.TableStruct{}
+	for _, x := range fc {
+		ts = append(ts, x)
+	}
+
 	// List our configured Roles
 	if len(cli.List.Fields) > 0 {
-		generateReport(fc, cli.List.Fields)
+		utils.GenerateTable(ts, cli.List.Fields)
 	} else if cfile.Fields != nil && len(*cfile.Fields) > 0 {
-		generateReport(fc, *cfile.Fields)
+		utils.GenerateTable(ts, *cfile.Fields)
 	} else {
-		generateReport(fc, defaultFields)
+		utils.GenerateTable(ts, defaultFields)
 	}
+
 	return nil
 }
 
@@ -75,7 +88,7 @@ func listFlatConfigFields(fc FlatConfig) {
 	t := reflect.TypeOf(fc)
 	for i := 0; i < t.NumField(); i++ {
 		field := t.Field(i)
-		fields[field.Name] = field.Tag.Get(FLAT_CONFIG_TAG)
+		fields[field.Name] = field.Tag.Get(utils.TABLE_HEADER_TAG)
 	}
 
 	max_key := len("Field")
@@ -100,58 +113,5 @@ func listFlatConfigFields(fc FlatConfig) {
 	sort.Strings(keys)
 	for _, k := range keys {
 		fmt.Printf(fstring, k, fields[k])
-	}
-}
-
-func generateReport(data []FlatConfig, fields []string) {
-	headers := make([]interface{}, len(fields)) // must be interface
-	headerLen := map[string]int{}
-
-	// get length of selected headers
-	for i, field := range fields {
-		f, err := data[0].GetHeader(field)
-		if err != nil {
-			log.Fatal(err)
-		}
-		headers[i] = f
-		headerLen[field] = len(f)
-	}
-
-	// get length of selected field values
-	for _, row := range data {
-		r := reflect.ValueOf(row)
-		for _, field := range fields {
-			val := r.FieldByName(field).String()
-			if len(val) > headerLen[field] {
-				headerLen[field] = len(val)
-			}
-		}
-	}
-
-	// build our fstring
-	fstringList := []string{}
-	for _, field := range fields {
-		fstringList = append(fstringList, fmt.Sprintf("%%-%ds", headerLen[field]))
-	}
-	fstring := strings.Join(fstringList, " | ")
-	fstring = fmt.Sprintf("%s\n", fstring)
-
-	// print the header
-	headerLine := fmt.Sprintf(fstring, headers...)
-	fmt.Printf("%s%s\n", headerLine, strings.Repeat("=", len(headerLine)-1))
-
-	// print each row
-	for _, row := range data {
-		r := make([]interface{}, len(fields))
-		for i, field := range fields {
-			f := reflect.ValueOf(row).FieldByName(field)
-			// value is a string or Uint
-			if f.Type().Name() == "string" {
-				r[i] = f.String()
-			} else {
-				r[i] = fmt.Sprintf("%d", f.Uint())
-			}
-		}
-		fmt.Printf(fstring, r...)
 	}
 }

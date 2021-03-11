@@ -40,7 +40,7 @@ type RunContext struct {
 
 type CLI struct {
 	// Common Arguments
-	LogLevel string `kong:"optional,short='l',name='loglevel',default='warn',enum='error,warn,debug',help='Logging level [error|warn|debug]'"`
+	LogLevel string `kong:"optional,short='l',name='loglevel',default='info',enum='error,warn,info,debug',help='Logging level [error|warn|info|debug]'"`
 	// have to hard code CONFIG_YAML value here because no way to do string interpolation in a strcture tag.
 	ConfigFile string `kong:"optional,short='c',name='config',default='~/.onelogin.yaml',help='Config file'"`
 	// AWS Params
@@ -63,6 +63,8 @@ func parse_args(cli *CLI) *kong.Context {
 	case "debug":
 		log.SetLevel(log.DebugLevel)
 		log.SetReportCaller(true)
+	case "info":
+		log.SetLevel(log.InfoLevel)
 	case "warn":
 		log.SetLevel(log.WarnLevel)
 	case "error":
