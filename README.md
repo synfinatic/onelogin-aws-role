@@ -66,7 +66,7 @@ Where:
  * `subdomain` - Your organization's OneLoging subdomain (required)
  * `ip`  - Specify the IP to be used on the method to retrieve the SAMLResponse in
     order to bypass MFA if that IP was previously whitelisted. (optional)
- * `mfa` - Default device_id for MFA to skip prompting
+ * `mfa` - Default device_id for MFA to skip prompting (optional)
 
 By default, the credentials only last for 1 hour, but you can
 [edit that restriction on AWS and set a max of 12h session duration](
@@ -150,7 +150,9 @@ Note that all the necessary shell environment variables will be set:
  * `AWS_SESSION_EXPIRATION` -- Date & Time this session token will expire
  * `AWS_ROLE_ARN` -- Selected AWS Role ARN
  * `AWS_ENABLED_PROFILE` -- note that this is different from `AWS_PROFILE` as we do not
-	want to confuse clients that may try to load `~/.aws/config` and `~/.aws/credentials`.
+	want to [confuse clients that may try to load](
+        https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-profiles.html)
+        `~/.aws/config` and `~/.aws/credentials`.
 
 ### Cache All STS Session Tokens for a OneLogin Application
 
