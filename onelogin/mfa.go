@@ -3,9 +3,13 @@ package onelogin
 import (
 	"encoding/json"
 	"fmt"
+	"reflect"
+	"strconv"
 
+	"github.com/Songmu/prompter"
 	resty "github.com/go-resty/resty/v2"
-	//	log "github.com/sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
+	"github.com/synfinatic/onelogin-aws-role/utils"
 )
 
 type MFA struct {
@@ -19,8 +23,16 @@ type MFA struct {
 }
 
 type MfaDevice struct {
-	DeviceType string `json:"device_type"`
-	DeviceId   int32  `json:"device_id"`
+	DeviceType string `json:"device_type" header:"MFA Device Type"`
+	DeviceId   int32  `json:"device_id" header:"MFA Device ID"`
+}
+
+const HEADER_TAG = "header"
+
+type MfaSelect struct {
+	Select     string `header:"Select"`
+	DeviceType string `header:"MFA Device Type"`
+	DeviceId   int32  `header:"MFA Device ID"`
 }
 
 func (mfa *MFA) SetParam(key string, value string) {
@@ -88,32 +100,61 @@ func (mfa *MFA) OneLoginProtectPush(notify bool) (string, error) {
 	return resp.String(), nil
 }
 
-/*
-	// Don't notify user for subsequent calls
-	data["do_not_notify"] = "true"
-	body, _ = json.Marshal(data)
-
-	for timeout != 0 {
-		// keep asking the API to see if we got the response from user via App
-		resp, err := o.client.R().
-			SetBody(body).
-			SetResult(&SessionLoginTokenResponse{}).
-			Post(o.CallbackUrl)
-		if err != nil {
-			return fmt.Errorf("Unable to checks status of Protect Push: %s", err.Error())
-		} else if resp.IsError() {
-			return fmt.Errorf("Unable to check status of Protect Push: %s [%d]", resp.String(), resp.StatusCode())
+func GenerateMfaSelect(devices []MfaDevice) *[]MfaSelect {
+	mfaDevices := make([]MfaSelect, len(devices))
+	for i, mfa := range devices {
+		mfaDevices[i] = MfaSelect{
+			Select:     fmt.Sprintf("%d", 1+i),
+			DeviceId:   mfa.DeviceId,
+			DeviceType: mfa.DeviceType,
 		}
-		result := resp.Result().(*SessionLoginTokenResponse)
-		result.Status.Check(true)
-		log.Debugf("%s: %v", o.CallbackUrl, resp)
-		if result.Data != nil {
-			o.SessionToken = result.Data[0].SessionToken
-			return nil
-		}
-		timeout -= 1
-		time.Sleep(1 * time.Second)
 	}
-	return fmt.Errorf("Timed out waiting for MFA Push response")
+
+	return &mfaDevices
 }
-*/
+
+func SelectMfaDevice(mfaDevices []MfaDevice) int32 {
+	// If there is only one, don't bother prompting user
+	if len(mfaDevices) == 1 {
+		return mfaDevices[0].DeviceId
+	}
+
+	m := GenerateMfaSelect(mfaDevices)
+	mfaSelect := *m
+	fields := []string{
+		"Select",
+		"DeviceType",
+		"DeviceId",
+	}
+
+	ts := []utils.TableStruct{}
+	for _, mfa := range mfaSelect {
+		ts = append(ts, mfa)
+	}
+	utils.GenerateTable(ts, fields)
+	fmt.Printf("\n")
+
+	var mfaid int32 = 0
+	for mfaid == 0 {
+		sel := prompter.Prompt("Select MFA Device", "")
+		x, err := strconv.ParseInt(sel, 10, 32)
+		if err != nil || x > int64(len(mfaDevices)) || x < 1 {
+			log.Errorf("Invalid MFA selector: please choose 1-%d", len(mfaDevices))
+			mfaid = 0
+			continue
+		}
+		mfa := mfaSelect[x-1]
+		mfaid = mfa.DeviceId
+	}
+	return mfaid
+}
+
+func (mfa MfaDevice) GetHeader(fieldName string) (string, error) {
+	v := reflect.ValueOf(mfa)
+	return utils.GetHeaderTag(v, fieldName)
+}
+
+func (mfa MfaSelect) GetHeader(fieldName string) (string, error) {
+	v := reflect.ValueOf(mfa)
+	return utils.GetHeaderTag(v, fieldName)
+}

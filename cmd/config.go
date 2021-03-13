@@ -16,6 +16,7 @@ import (
 
 	yaml "github.com/goccy/go-yaml"
 	log "github.com/sirupsen/logrus"
+	"github.com/synfinatic/onelogin-aws-role/utils"
 )
 
 // ConfigFile structure
@@ -59,8 +60,7 @@ type FlatConfig struct {
 }
 
 const (
-	CONFIG_YAML     string = "~/.onelogin.yaml"
-	FLAT_CONFIG_TAG        = "header"
+	CONFIG_YAML string = "~/.onelogin.yaml"
 )
 
 // Returns the config file path.  If `path` is empty, use CONFIG_YAML
@@ -248,31 +248,25 @@ func (c *ConfigFile) GetAppIdForRole(alias string) (uint32, error) {
 	return 0, fmt.Errorf("Unable to find Role with alias or name: %s", alias)
 }
 
-func getHeaderTag(v reflect.Value, fieldName string) (string, error) {
-	field, ok := v.Type().FieldByName(fieldName)
-	if !ok {
-		return "", fmt.Errorf("Invalid field '%s' in %s", fieldName, v.Type().Name())
-	}
-	tag := string(field.Tag.Get(FLAT_CONFIG_TAG))
-	return tag, nil
+/*
+ * these structs are all defined in cmd/config.go
+ */
+func (cf ConfigFile) GetHeader(fieldName string) (string, error) {
+	v := reflect.ValueOf(cf)
+	return utils.GetHeaderTag(v, fieldName)
 }
 
-func (cf *ConfigFile) GetHeader(fieldName string) (string, error) {
-	v := reflect.ValueOf(*cf)
-	return getHeaderTag(v, fieldName)
+func (ac AppConfig) GetHeader(fieldName string) (string, error) {
+	v := reflect.ValueOf(ac)
+	return utils.GetHeaderTag(v, fieldName)
 }
 
-func (ac *AppConfig) GetHeader(fieldName string) (string, error) {
-	v := reflect.ValueOf(*ac)
-	return getHeaderTag(v, fieldName)
+func (rc RoleConfig) GetHeader(fieldName string) (string, error) {
+	v := reflect.ValueOf(rc)
+	return utils.GetHeaderTag(v, fieldName)
 }
 
-func (rc *RoleConfig) GetHeader(fieldName string) (string, error) {
-	v := reflect.ValueOf(*rc)
-	return getHeaderTag(v, fieldName)
-}
-
-func (c *FlatConfig) GetHeader(fieldName string) (string, error) {
-	v := reflect.ValueOf(*c)
-	return getHeaderTag(v, fieldName)
+func (c FlatConfig) GetHeader(fieldName string) (string, error) {
+	v := reflect.ValueOf(c)
+	return utils.GetHeaderTag(v, fieldName)
 }

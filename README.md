@@ -54,7 +54,7 @@ region: <OneLogin Region>
 username: <OneLogin Username>
 subdomain: <OneLogin Subdomain>
 ip: <IP Address>
-mfa: <device_id|device_type>
+mfa: <device_id>
 ```
 
 Where:
@@ -66,7 +66,7 @@ Where:
  * `subdomain` - Your organization's OneLoging subdomain (required)
  * `ip`  - Specify the IP to be used on the method to retrieve the SAMLResponse in
     order to bypass MFA if that IP was previously whitelisted. (optional)
- * `mfa` - Default device_id or device_type for MFA to skip prompting
+ * `mfa` - Default device_id for MFA to skip prompting
 
 By default, the credentials only last for 1 hour, but you can
 [edit that restriction on AWS and set a max of 12h session duration](

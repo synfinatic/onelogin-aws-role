@@ -95,11 +95,6 @@ func NewOneLogin(clientid string, client_secret string, region string) (*OneLogi
 		token = result.AccessToken
 		o.Cache.SaveAccessToken(result)
 	}
-	//	result.Status.Check(true)
-
-	//	if result.Status.Error {
-	//		log.Fatalf("Error %s: %s", result.Status.Type, result.Status.Message)
-	//	}
 
 	// make other API calls shorter
 	o.Client.SetAuthToken(token).
