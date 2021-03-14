@@ -18,6 +18,7 @@ package main
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+/*
 import (
 	"fmt"
 
@@ -37,35 +38,6 @@ func (cc *RoleCmd) Run(ctx *RunContext) error {
 	_, err := GetSession(ctx, cli.Role.Profile)
 	return err
 }
-
-func GetSession(ctx *RunContext, profile string) (aws.STSSession, error) {
-	session := aws.STSSession{}
-	kr, err := OpenKeyring(nil)
-	if err != nil {
-		log.WithError(err).Warn("Unable to retrieve STS Session from Keychain")
-	} else {
-		err = kr.GetSTSSession(profile, &session)
-		if err != nil {
-			log.WithError(err).Warn("Unable to read STS Session from Keychain")
-		}
-		if session.Expired() {
-			log.Warn("Cached STS SessionToken has expired")
-		}
-	}
-
-	if session.Expired() {
-		session, err = Login(ctx, profile)
-		if err != nil {
-			log.WithError(err).Fatal("Unable to get STSSession")
-		}
-		err = kr.SaveSTSSession(profile, session)
-		if err != nil {
-			log.WithError(err).Warn("Unable to cache STS Session in Keychain")
-		}
-	}
-	return session, nil
-}
-
 func Login(ctx *RunContext, profile string) (aws.STSSession, error) {
 	cli := *ctx.Cli
 	cfile, err := LoadConfigFile(GetPath(cli.ConfigFile))
@@ -73,7 +45,17 @@ func Login(ctx *RunContext, profile string) (aws.STSSession, error) {
 		return aws.STSSession{}, fmt.Errorf("Unable to open %s: %s", cli.ConfigFile, err.Error())
 	}
 
-	o, err := onelogin.NewOneLogin(ctx.Config.ClientID, ctx.Config.ClientSecret, ctx.Config.Region)
+	kr, err := OpenKeyring(nil)
+	if err != nil {
+		return aws.STSSession{}, fmt.Errorf("Unable to open KeyChain for OneLogin Oauth: %s", err)
+	}
+	oauth := OauthConfig{}
+	err = kr.GetOauthConfig(&oauth)
+	if err != nil {
+		return aws.STSSession{}, fmt.Errorf("Please configure Oauth credentials")
+	}
+
+	o, err := onelogin.NewOneLogin(oauth.ClientId, oauth.Secret, ctx.Config.Region)
 	if err != nil {
 		log.WithError(err).Fatal("Unable to connect to OneLogin")
 	}
@@ -134,3 +116,4 @@ func Login(ctx *RunContext, profile string) (aws.STSSession, error) {
 
 	return aws.GetSTSSession(assertion, role, region, cli.Duration*60)
 }
+*/

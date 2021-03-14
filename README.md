@@ -48,8 +48,6 @@ This section defines the OAuth2 configuration necessary to talk to OneLogin
 API servers.  You will need to get this from your administrator.
 
 ```yaml
-client_id: <OneLogin Client ID>
-client_secret: <OneLogin Client Secret>
 region: <OneLogin Region>
 username: <OneLogin Username>
 subdomain: <OneLogin Subdomain>
@@ -59,8 +57,6 @@ mfa: <device_id>
 
 Where:
 
- * `client_id`  - OneLogin OAuth2 client ID (required)
- * `client_secret`  - OneLogin OAuth2 client secret (required)
  * `region`  - One of `us` or `eu` depending on OneLogin server region to use (required)
  * `username` - Your OneLogin username/email address (required)
  * `subdomain` - Your organization's OneLoging subdomain (required)
@@ -124,6 +120,22 @@ calling `iam:ListAccountAliases` to determine the alias.
 After you have edited your `~/.onelogin.yaml` config file, you can verify it by
 running `onelogin-aws-role` and you should see a list of AWS Accounts and Roles that
 you have configured.
+
+### Configure your OneLogin ClientId and Client Secret
+
+All API calls to OneLogin [require a valid Oauth access token](
+https://developers.onelogin.com/api-docs/2/oauth20-tokens/generate-tokens-2).  In
+order to get one of these tokens, you must first authenticate to the OneLogin service
+using the ClientId and Client Secret provided to you by your administrator.  Both
+ClientId and Client Secrets are 64 character hex strings.
+
+##### Set ClientId and Client Secret
+
+`onelogin-aws-role oauth set`
+
+##### Show ClientId and Client Secret
+
+`onelogin-aws-role oauth show`
 
 ### Get STS Session Token for an IAM Role
 
