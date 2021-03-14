@@ -39,16 +39,14 @@ import (
 
 // ConfigFile structure
 type ConfigFile struct {
-	ClientID     string                `yaml:"client_id"`
-	ClientSecret string                `yaml:"client_secret"`
-	Region       string                `yaml:"region"`                           // OneLogin Region
-	Username     string                `yaml:"username"`                         // or email address
-	Subdomain    string                `yaml:"subdomain"`                        // XXXX.onelogin.com
-	Mfa          int32                 `yaml:"mfa"`                              // MFA device_id to use by default
-	Duration     uint32                `yaml:"duration"`                         // Default duration (in seconds) for credentials
-	Accounts     *map[uint64]string    `yaml:"aws_accounts" header:"AccountID"`  // AWS AccountID is the key
-	Apps         *map[uint32]AppConfig `yaml:"apps" header:"AppID"`              // OneLogin AppID is the key
-	Fields       *[]string             `yaml:"fields,omitempty" header:"Fields"` // List of fields to report with `list` command
+	Region    string                `yaml:"region"`                           // OneLogin Region
+	Username  string                `yaml:"username"`                         // or email address
+	Subdomain string                `yaml:"subdomain"`                        // XXXX.onelogin.com
+	Mfa       int32                 `yaml:"mfa"`                              // MFA device_id to use by default
+	Duration  uint32                `yaml:"duration"`                         // Default duration (in seconds) for credentials
+	Accounts  *map[uint64]string    `yaml:"aws_accounts" header:"AccountID"`  // AWS AccountID is the key
+	Apps      *map[uint32]AppConfig `yaml:"apps" header:"AppID"`              // OneLogin AppID is the key
+	Fields    *[]string             `yaml:"fields,omitempty" header:"Fields"` // List of fields to report with `list` command
 }
 
 // App config

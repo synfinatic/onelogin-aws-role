@@ -105,3 +105,27 @@ func (kr *KeyringCache) GetSTSSession(profile string, session *aws.STSSession) e
 	}
 	return nil
 }
+
+func (kr *KeyringCache) GetOauthConfig(oauth *OauthConfig) error {
+	data, err := kr.keyring.Get("oauth:config")
+	if err != nil {
+		return err
+	}
+	err = json.Unmarshal(data.Data, oauth)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (kr *KeyringCache) SaveOauthConfig(oauth OauthConfig) error {
+	jdata, err := json.Marshal(oauth)
+	if err != nil {
+		return err
+	}
+	err = kr.keyring.Set(keyring.Item{
+		Key:  "oauth:config",
+		Data: jdata,
+	})
+	return err
+}
