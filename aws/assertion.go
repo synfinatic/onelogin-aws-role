@@ -32,25 +32,6 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-type STSSession struct {
-	RoleARN         string    `json:"ROLE_ARN"`
-	AccessKeyID     string    `json:"AWS_ACCESS_KEY_ID"`
-	SecretAccessKey string    `json:"AWS_SECRET_ACCESS_KEY"`
-	SessionToken    string    `json:"AWS_SESSION_TOKEN"`
-	Expiration      time.Time `json:"AWS_SESSION_EXPIRATION"`
-	Provider        string    `json:"STS_PROVIDER"`
-	Issuer          string    `json:"STS_ISSUER"`
-	Region          string    `json:"-"`
-}
-
-func (s *STSSession) Expired() bool {
-	// 5 seconds of fuzz
-	if s.Expiration.Before(time.Now().Add(time.Second * 5)) {
-		return true
-	}
-	return false
-}
-
 // get list of role ARNs in a SAML Assertion
 func GetRoles(assertion string) ([]string, error) {
 	roles := []string{}

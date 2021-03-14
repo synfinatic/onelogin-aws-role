@@ -87,7 +87,7 @@ func (kr *KeyringCache) SaveSTSSession(profile string, session aws.STSSession) e
 		return err
 	}
 	err = kr.keyring.Set(keyring.Item{
-		Key:  profile,
+		Key:  fmt.Sprintf("profile:%s", profile),
 		Data: jdata,
 	})
 	return err
@@ -95,7 +95,7 @@ func (kr *KeyringCache) SaveSTSSession(profile string, session aws.STSSession) e
 
 // Get our STS Session from the key chain
 func (kr *KeyringCache) GetSTSSession(profile string, session *aws.STSSession) error {
-	data, err := kr.keyring.Get(profile)
+	data, err := kr.keyring.Get(fmt.Sprintf("profile:%s", profile))
 	if err != nil {
 		return err
 	}

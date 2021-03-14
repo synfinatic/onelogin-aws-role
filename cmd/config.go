@@ -75,6 +75,7 @@ type FlatConfig struct {
 	Arn         string `header:"Role ARN"`
 	Profile     string `header:"$AWS_PROFILE"`
 	Region      string `header:"Default Region"`
+	Expires     string `header:"Expires"`
 }
 
 const (

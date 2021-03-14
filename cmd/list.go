@@ -25,8 +25,9 @@ import (
 	"sort"
 	"strings"
 
+	log "github.com/sirupsen/logrus"
+	"github.com/synfinatic/onelogin-aws-role/aws"
 	"github.com/synfinatic/onelogin-aws-role/utils"
-	//	log "github.com/sirupsen/logrus"
 )
 
 /*
@@ -34,7 +35,7 @@ import (
  */
 
 type ListCmd struct {
-	Fields     []string `kong:"optional,arg,enum='AccountId,AccountName,AppId,AppName,AppAlias,Arn,Profile,Region',help='Fields to display (default: AppAlias AccountName RoleAlias Arn)'"`
+	Fields     []string `kong:"optional,arg,enum='AccountId,AccountName,AppId,AppName,AppAlias,Arn,Expires,Profile,Region',help='Fields to display (default: AppAlias AccountName RoleAlias Arn Expires)'"`
 	ListFields bool     `kong:"optional,short='f',help='List available fields'"`
 }
 
@@ -45,6 +46,7 @@ var defaultFields = []string{
 	"AccountName",
 	"Profile",
 	"Arn",
+	"Expires",
 }
 
 func (cc *ListCmd) Run(ctx *RunContext) error {
@@ -56,9 +58,9 @@ func (cc *ListCmd) Run(ctx *RunContext) error {
 	}
 
 	// If `-f` then print our fields and exit
-	fc := cfile.GetFlatConfig()
+	fcList := cfile.GetFlatConfig()
 	if cli.List.ListFields {
-		listFlatConfigFields(fc[0])
+		listFlatConfigFields(fcList[0])
 		os.Exit(1)
 	}
 
@@ -83,10 +85,26 @@ func (cc *ListCmd) Run(ctx *RunContext) error {
 
 	fmt.Printf("\n\n")
 
+	kr, err := OpenKeyring(nil)
+	if err != nil {
+		log.WithError(err).Warn("Unable to retrieve STS Sessions from Keychain")
+		kr = nil
+	}
+
 	// manually convert our []FlatConfig into []TableStruct because Go is lame
 	ts = []utils.TableStruct{}
-	for _, x := range fc {
-		ts = append(ts, x)
+	for _, fc := range fcList {
+		if kr != nil {
+			session := aws.STSSession{}
+			err := kr.GetSTSSession(fc.Profile, &session)
+			if err == nil {
+				fc.Expires = session.GetExpireTimeString()
+			}
+		}
+		if fc.Expires == "" {
+			fc.Expires = "Expired"
+		}
+		ts = append(ts, fc)
 	}
 
 	// List our configured Roles
