@@ -52,13 +52,8 @@ var defaultFields = []string{
 func (cc *ListCmd) Run(ctx *RunContext) error {
 	cli := *ctx.Cli
 
-	cfile, err := LoadConfigFile(GetPath(cli.ConfigFile))
-	if err != nil {
-		return fmt.Errorf("Unable to open %s: %s", cli.ConfigFile, err.Error())
-	}
-
 	// If `-f` then print our fields and exit
-	fcList := cfile.GetFlatConfig()
+	fcList := ctx.Config.GetFlatConfig()
 	if cli.List.ListFields {
 		listFlatConfigFields(fcList[0])
 		os.Exit(1)
@@ -66,7 +61,7 @@ func (cc *ListCmd) Run(ctx *RunContext) error {
 
 	// List our AWS account aliases by abusing the FlatConfig struct
 	accounts := []FlatConfig{}
-	for k, v := range *cfile.Accounts {
+	for k, v := range *ctx.Config.Accounts {
 		accounts = append(accounts, FlatConfig{
 			AccountId:   k,
 			AccountName: v,
@@ -110,8 +105,8 @@ func (cc *ListCmd) Run(ctx *RunContext) error {
 	// List our configured Roles
 	if len(cli.List.Fields) > 0 {
 		utils.GenerateTable(ts, cli.List.Fields)
-	} else if cfile.Fields != nil && len(*cfile.Fields) > 0 {
-		utils.GenerateTable(ts, *cfile.Fields)
+	} else if ctx.Config.Fields != nil && len(*ctx.Config.Fields) > 0 {
+		utils.GenerateTable(ts, *ctx.Config.Fields)
 	} else {
 		utils.GenerateTable(ts, defaultFields)
 	}
