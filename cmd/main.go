@@ -46,7 +46,7 @@ type CLI struct {
 	// Common Arguments
 	LogLevel string `kong:"optional,short='l',name='loglevel',default='info',enum='error,warn,info,debug',help='Logging level [error|warn|info|debug]'"`
 	// have to hard code CONFIG_YAML value here because no way to do string interpolation in a strcture tag.
-	ConfigFile string `kong:"optional,short='c',name='config',default='~/.onelogin.yaml',help='Config file'"`
+	ConfigFile string `kong:"optional,short='c',name='config',default='~/.onelogin-aws-role.yaml',help='Config file'"`
 	// AWS Params
 	Region   string `kong:"optional,short='r',help='AWS Region',env='AWS_DEFAULT_REGION'"`
 	Duration int64  `kong:"optional,short='d',help='AWS Session duration in minutes (default: 1hr)',default=60"`
@@ -83,7 +83,7 @@ func main() {
 	cli := CLI{}
 	ctx := parse_args(&cli)
 
-	c, err := LoadConfigFile(cli.ConfigFile)
+	c, err := LoadConfigFile(GetPath(cli.ConfigFile))
 	if err != nil {
 		log.Fatalf("Unable to load config: %s", err.Error())
 	}
@@ -131,11 +131,6 @@ func GetSession(ctx *RunContext, profile string) (aws.STSSession, error) {
 
 func Login(ctx *RunContext, profile string) (aws.STSSession, error) {
 	cli := *ctx.Cli
-	cfile, err := LoadConfigFile(GetPath(cli.ConfigFile))
-	if err != nil {
-		return aws.STSSession{}, fmt.Errorf("Unable to open %s: %s", cli.ConfigFile, err.Error())
-	}
-
 	kr, err := OpenKeyring(nil)
 	if err != nil {
 		return aws.STSSession{}, fmt.Errorf("Unable to open KeyChain for OneLogin Oauth: %s", err)
@@ -189,7 +184,7 @@ func Login(ctx *RunContext, profile string) (aws.STSSession, error) {
 		log.Infof("Got SAML Assertion:\n%s", assertion)
 	}
 
-	role, err := cfile.GetRoleArn(profile)
+	role, err := ctx.Config.GetRoleArn(profile)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -198,7 +193,7 @@ func Login(ctx *RunContext, profile string) (aws.STSSession, error) {
 	if cli.Region != "" {
 		region = cli.Region
 	} else {
-		region, err = cfile.GetRoleRegion(profile)
+		region, err = ctx.Config.GetRoleRegion(profile)
 		if err != nil {
 			log.WithError(err).Warn("Unable to set default AWS region, falling back to us-east-1")
 			region = "us-east-1"

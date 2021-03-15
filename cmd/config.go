@@ -76,17 +76,9 @@ type FlatConfig struct {
 	Expires     string `header:"Expires"`
 }
 
-const (
-	CONFIG_YAML string = "~/.onelogin.yaml"
-)
-
-// Returns the config file path.  If `path` is empty, use CONFIG_YAML
+// Returns the config file path.
 func GetPath(path string) string {
-	cfg := CONFIG_YAML
-	if path != "" {
-		cfg = path
-	}
-	return strings.Replace(cfg, "~", os.Getenv("HOME"), 1)
+	return strings.Replace(path, "~", os.Getenv("HOME"), 1)
 }
 
 // Loads our config file at the given path

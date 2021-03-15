@@ -38,7 +38,7 @@ Just run `make` (GNU Make!) to build a binary and copy it to a location in your 
 ## Settings
 
 OneLogin AWS Role has a single YAML configuration file:
-`~/.onelogin.yaml`
+`~/.onelogin-aws-role.yaml`
 
 It contains the following sections:
 
@@ -117,7 +117,7 @@ calling `iam:ListAccountAliases` to determine the alias.
 
 ### Check your config
 
-After you have edited your `~/.onelogin.yaml` config file, you can verify it by
+After you have edited your `~/.onelogin-aws-role.yaml` config file, you can verify it by
 running `onelogin-aws-role` and you should see a list of AWS Accounts and Roles that
 you have configured.
 
@@ -174,6 +174,13 @@ This will authenticate you to OneLogin and retrieve and cache all of the STS
 Session Tokens for all the IAM roles associated with this OneLogin Application.  Further
 calls to `onelogin-aws-role exec <profile> ...` which are contained in that OneLogin 
 Application will not require re-authentication until the STS Session Tokens expire.
+
+## Other Files
+
+onelogin-aws-role will create the following file(s):
+
+ * `~/.onelogin-aws-role.cache`
+	Contains SAML Assertions (good for ~3min) and the OneLogin bearer token (good for ~10hrs)
 
 ## License
 

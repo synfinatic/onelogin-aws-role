@@ -30,7 +30,7 @@ import (
 )
 
 func saml_cache() string {
-	return fmt.Sprintf("%s/.onelogin.cache", os.Getenv("HOME"))
+	return fmt.Sprintf("%s/.onelogin-aws-role.cache", os.Getenv("HOME"))
 }
 
 type OneLoginCache struct {
