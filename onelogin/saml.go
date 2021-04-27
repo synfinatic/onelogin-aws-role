@@ -277,11 +277,9 @@ func (ols *OneLoginSAML) OneLoginProtectPush(app_id uint32, tries uint32) (bool,
 		if err != nil {
 			log.Warn(err.Error())
 		}
-		log.Error("returning true")
 		return true, nil
 	}
 	// timed out
-	log.Error("returning false")
 	return false, nil
 }
 

@@ -58,6 +58,7 @@ type CLI struct {
 	List  ListCmd  `kong:"cmd,help='List all role / appid aliases (default command)',default='1'"`
 	Oauth OauthCmd `kong:"cmd,help='Manage OneLogin Oauth credentials'"`
 	// Revoke -- much later
+	Version VersionCmd `kong:"cmd,help='Print version and exit'"`
 }
 
 func parse_args(cli *CLI) *kong.Context {
@@ -181,7 +182,7 @@ func Login(ctx *RunContext, profile string) (aws.STSSession, error) {
 	if err != nil {
 		log.Fatalf("Unable to get SAML Assertion: %s", err.Error())
 	} else {
-		log.Infof("Got SAML Assertion:\n%s", assertion)
+		log.Debugf("Got SAML Assertion:\n%s", assertion)
 	}
 
 	role, err := ctx.Config.GetRoleArn(profile)
@@ -201,4 +202,13 @@ func Login(ctx *RunContext, profile string) (aws.STSSession, error) {
 	}
 
 	return aws.GetSTSSession(assertion, role, region, cli.Duration*60)
+}
+
+type VersionCmd struct {
+}
+
+func (cc *VersionCmd) Run(ctx *RunContext) error {
+	fmt.Printf("OneLogin AWS Role Version %s -- Copyright 2021 Aaron Turner\n", Version)
+	fmt.Printf("%s (%s) built at %s\n", CommitID, Tag, Buildinfos)
+	return nil
 }
