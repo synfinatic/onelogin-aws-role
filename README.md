@@ -189,5 +189,5 @@ This program is available under the terms of the [GPLv3 License](https://opensou
 ## Thanks
 
 This README and project is heavily based on and includes content from
-[OneLogin-Python-Go-AWS-Assume-Role](
+[OneLogin-Python-AWS-Assume-Role](
 https://github.com/onelogin/onelogin-python-aws-assume-role).
