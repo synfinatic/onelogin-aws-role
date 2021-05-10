@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## v0.1.3 - 2021-05-19
+
+- Fix SecTrustedApplicationCreateFromPath deprecation warning
+
 ## v0.1.2 - 2021-04-27
 
 - Change binary name to match git repo: onelogin-aws-role
