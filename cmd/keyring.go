@@ -38,7 +38,6 @@ var krConfigDefaults = keyring.Config{
 	ServiceName: "OneLoginAWSRole", // generic
 	// OSX Keychain
 	KeychainName:                   "OneLoginAWSRole",
-	KeychainTrustApplication:       false,
 	KeychainSynchronizable:         false,
 	KeychainAccessibleWhenUnlocked: false,
 	// KeychainPasswordFunc: ???,

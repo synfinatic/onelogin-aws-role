@@ -18,3 +18,6 @@ require (
 	golang.org/x/crypto v0.0.0-20200820211705-5c72a883971a
 	gopkg.in/check.v1 v1.0.0-20200227125254-8fa46927fb4f // indirect
 )
+
+// pin this version (or later) until 99designs/keyring updates.  See #19
+replace github.com/keybase/go-keychain => github.com/99designs/go-keychain v0.0.0-20191008050251-8e49817e8af4

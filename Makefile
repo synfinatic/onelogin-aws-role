@@ -9,7 +9,7 @@ endif
 BUILDINFOSDET ?=
 PROGRAM_ARGS ?=
 
-PROJECT_VERSION           := 0.1.2
+PROJECT_VERSION           := 0.1.3
 DOCKER_REPO               := synfinatic
 PROJECT_NAME              := onelogin-aws-role
 PROJECT_TAG               := $(shell git describe --tags 2>/dev/null $(git rev-list --tags --max-count=1))
