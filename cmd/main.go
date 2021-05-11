@@ -45,19 +45,22 @@ type RunContext struct {
 
 type CLI struct {
 	// Common Arguments
-	LogLevel string `kong:"optional,short='l',name='loglevel',default='info',enum='error,warn,info,debug',help='Logging level [error|warn|info|debug]'"`
+	LogLevel string `kong:"optional,short='L',name='loglevel',default='info',enum='error,warn,info,debug',help='Logging level [error|warn|info|debug]'"`
+	Lines    bool   `kong:"optional,name='lines',help='Print line number in logs'"`
 	// have to hard code CONFIG_YAML value here because no way to do string interpolation in a strcture tag.
 	ConfigFile string `kong:"optional,short='c',name='config',default='~/.onelogin-aws-role.yaml',help='Config file'"`
 	// AWS Params
-	Region   string `kong:"optional,short='r',help='AWS Region',env='AWS_DEFAULT_REGION'"`
-	Duration int64  `kong:"optional,short='d',help='AWS Session duration in minutes (default 60)',default=60,env=ONELOGIN_AWS_DURATION"`
+	Region    string `kong:"optional,short='r',help='AWS Region',env='AWS_DEFAULT_REGION'"`
+	Duration  int64  `kong:"optional,short='d',help='AWS Session duration in minutes (default 60)',default=60,env=ONELOGIN_AWS_DURATION"`
+	PromptMfa bool   `kong:"optional,short='m',name='prompt-mfa',help='Force prompt for which MFA to use'"`
 
 	// Commands
 	//	Role RoleCmd `kong:"cmd,help='Fetch & cache AWS STS Token for a given Role/Profile'"`
 	//	App   AppCmd   `kong:"cmd,help='Fetch & cache all AWS STS Tokens for a given OneLogin AppID'"`
-	Exec  ExecCmd  `kong:"cmd,help='Execute command using specified AWS Role/Profile.'"`
+	Exec  ExecCmd  `kong:"cmd,help='Execute command using specified AWS Role/Profile'"`
 	List  ListCmd  `kong:"cmd,help='List all role / appid aliases (default command)',default='1'"`
 	Oauth OauthCmd `kong:"cmd,help='Manage OneLogin Oauth credentials'"`
+	Flush FlushCmd `kong:"cmd,help='Flush AWS Role/Profile credentials from keychain'"`
 	// Revoke -- much later
 	Version VersionCmd `kong:"cmd,help='Print version and exit'"`
 }
@@ -69,13 +72,16 @@ func parse_args(cli *CLI) *kong.Context {
 	switch cli.LogLevel {
 	case "debug":
 		log.SetLevel(log.DebugLevel)
-		log.SetReportCaller(true)
 	case "info":
 		log.SetLevel(log.InfoLevel)
 	case "warn":
 		log.SetLevel(log.WarnLevel)
 	case "error":
 		log.SetLevel(log.ErrorLevel)
+	}
+
+	if cli.Lines {
+		log.SetReportCaller(true)
 	}
 
 	return ctx
@@ -88,6 +94,10 @@ func main() {
 	c, err := LoadConfigFile(GetPath(cli.ConfigFile))
 	if err != nil {
 		log.Fatalf("Unable to load config: %s", err.Error())
+	}
+	if cli.PromptMfa {
+		// forget we have a MFA defined
+		c.Mfa = 0
 	}
 	// c.MergeCLI(&cli)
 
@@ -170,7 +180,7 @@ func Login(ctx *RunContext, profile string) (aws.STSSession, error) {
 	}
 
 	if need_mfa {
-		log.Info("MFA Required")
+		fmt.Printf("MFA Required\n")
 		success, err := ols.SubmitMFA(ctx.Config.Mfa, appid)
 		if err != nil {
 			log.Fatal(err)
