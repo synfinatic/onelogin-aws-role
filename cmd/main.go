@@ -57,10 +57,10 @@ type CLI struct {
 	// Commands
 	//	Role RoleCmd `kong:"cmd,help='Fetch & cache AWS STS Token for a given Role/Profile'"`
 	//	App   AppCmd   `kong:"cmd,help='Fetch & cache all AWS STS Tokens for a given OneLogin AppID'"`
-	Exec  ExecCmd  `kong:"cmd,help='Execute command using specified AWS Role/Profile'"`
-	List  ListCmd  `kong:"cmd,help='List all role / appid aliases (default command)',default='1'"`
-	Oauth OauthCmd `kong:"cmd,help='Manage OneLogin Oauth credentials'"`
-	Flush FlushCmd `kong:"cmd,help='Flush AWS Role/Profile credentials from keychain'"`
+	Exec   ExecCmd   `kong:"cmd,help='Execute command using specified AWS Role/Profile'"`
+	List   ListCmd   `kong:"cmd,help='List all role / appid aliases (default command)',default='1'"`
+	Oauth  OauthCmd  `kong:"cmd,help='Manage OneLogin Oauth credentials'"`
+	Expire ExpireCmd `kong:"cmd,help='Force expire of AWS Role/Profile credentials from keychain'"`
 	// Revoke -- much later
 	Version VersionCmd `kong:"cmd,help='Print version and exit'"`
 }

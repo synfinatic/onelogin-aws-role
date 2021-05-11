@@ -22,15 +22,15 @@ import (
 	"fmt"
 )
 
-type FlushCmd struct {
+type ExpireCmd struct {
 	Profile string `kong:"arg,required,name='profile',help='AWS Role alias name'"`
 }
 
-func (cc *FlushCmd) Run(ctx *RunContext) error {
+func (cc *ExpireCmd) Run(ctx *RunContext) error {
 	cli := *ctx.Cli
 	kr, err := OpenKeyring(nil)
 	if err != nil {
 		return fmt.Errorf("Unable to open KeyChain: %s", err)
 	}
-	return kr.RemoveSTSSession(cli.Flush.Profile)
+	return kr.RemoveSTSSession(cli.Expire.Profile)
 }
