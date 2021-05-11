@@ -34,6 +34,7 @@ var Version = "unknown"
 var Buildinfos = "unknown"
 var Tag = "NO-TAG"
 var CommitID = "unknown"
+var Delta = ""
 
 type RunContext struct {
 	OneLogin *onelogin.OneLogin
@@ -49,7 +50,7 @@ type CLI struct {
 	ConfigFile string `kong:"optional,short='c',name='config',default='~/.onelogin-aws-role.yaml',help='Config file'"`
 	// AWS Params
 	Region   string `kong:"optional,short='r',help='AWS Region',env='AWS_DEFAULT_REGION'"`
-	Duration int64  `kong:"optional,short='d',help='AWS Session duration in minutes (default: 1hr)',default=60"`
+	Duration int64  `kong:"optional,short='d',help='AWS Session duration in minutes (default 60)',default=60,env=ONELOGIN_AWS_DURATION"`
 
 	// Commands
 	//	Role RoleCmd `kong:"cmd,help='Fetch & cache AWS STS Token for a given Role/Profile'"`
@@ -208,7 +209,12 @@ type VersionCmd struct {
 }
 
 func (cc *VersionCmd) Run(ctx *RunContext) error {
-	fmt.Printf("OneLogin AWS Role Version %s -- Copyright 2021 Aaron Turner\n", Version)
+	delta := ""
+	if len(Delta) > 0 {
+		delta = fmt.Sprintf(" [%s delta]", Delta)
+		Tag = "Unknown"
+	}
+	fmt.Printf("OneLogin AWS Role Version %s%s -- Copyright 2021 Aaron Turner\n", Version, delta)
 	fmt.Printf("%s (%s) built at %s\n", CommitID, Tag, Buildinfos)
 	return nil
 }

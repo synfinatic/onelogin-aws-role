@@ -94,8 +94,6 @@ Where:
  * `arn`   - AWS ARN to assume (required)
  * `profile`  - Friendly name of this role and section of AWS_PROFILE to write to `~/.aws/credentials` (required)
  * `region`  - Configure the default AWS region.  Default: `us-east-1` (optional)
- * `duration`  - How many seconds your AssumeRole credentials should last by default
-    (optional, default is 3600, minimum 900 and max 43200)
 
 Note that you can configure multiple roles for each account, multiple accounts for
 each applications and multiple applications.
@@ -109,9 +107,6 @@ human readable names to the account list.
 aws_accounts:
     <account id>: <account alias/name>
 ```
-
-Note if you do not have an alias set for a given AWS Account Id, it will try
-calling `iam:ListAccountAliases` to determine the alias.
 
 ## Usage
 
@@ -137,6 +132,7 @@ ClientId and Client Secrets are 64 character hex strings.
 
 `onelogin-aws-role oauth show`
 
+<!--
 ### Get STS Session Token for an IAM Role
 
 `onelogin-aws-role role <profile name>`
@@ -144,6 +140,7 @@ ClientId and Client Secrets are 64 character hex strings.
 This will ask you to authenticate to OneLogin and then retrieve the STS Session Token
 for the specified IAM role and cache that in your Keychain.  If you have an existing
 cached STS Session Token for this role, it will renew it.
+-->
 
 ### Execute command with an IAM Role
 
@@ -166,6 +163,7 @@ Note that all the necessary shell environment variables will be set:
         https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-profiles.html)
         `~/.aws/config` and `~/.aws/credentials`.
 
+<!--
 ### Cache All STS Session Tokens for a OneLogin Application
 
 `onelogin-aws-role app <appid>`
@@ -174,6 +172,7 @@ This will authenticate you to OneLogin and retrieve and cache all of the STS
 Session Tokens for all the IAM roles associated with this OneLogin Application.  Further
 calls to `onelogin-aws-role exec <profile> ...` which are contained in that OneLogin 
 Application will not require re-authentication until the STS Session Tokens expire.
+-->
 
 ## Other Files
 
@@ -181,6 +180,13 @@ onelogin-aws-role will create the following file(s):
 
  * `~/.onelogin-aws-role.cache`
 	Contains SAML Assertions (good for ~3min) and the OneLogin bearer token (good for ~10hrs)
+
+## Environment Variables
+
+The following environment variables are honored to specify defaults:
+
+ * `ONELOGIN_AWS_DURATION` -- Default number of minutes to request the STS Session to be good for
+ * `AWS_DEFAULT_REGION` -- Default AWS Region to make API calls to
 
 ## License
 
