@@ -32,6 +32,11 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+const (
+	XML_QUERY_ROLES   = "/samlp:Response/saml:Assertion/saml:AttributeStatement/saml:Attribute/saml:AttributeValue"
+	XML_QUERY_EXPIRES = "/samlp:Response/saml:Assertion/saml:Conditions/@NotOnOrAfter"
+)
+
 // get list of role ARNs in a SAML Assertion
 func GetRoles(assertion string) ([]string, error) {
 	roles := []string{}
@@ -41,7 +46,7 @@ func GetRoles(assertion string) ([]string, error) {
 		return roles, err
 	}
 	// returns our Roles as well as our Email address
-	items := xmlquery.Find(q, "/samlp:Response/saml:Assertion/saml:AttributeStatement/saml:Attribute/saml:AttributeValue")
+	items := xmlquery.Find(q, XML_QUERY_ROLES)
 	for _, item := range items {
 		if strings.HasPrefix(item.InnerText(), "arn:aws:iam:") {
 			splits := strings.Split(item.InnerText(), ",")
@@ -59,7 +64,7 @@ func GetRolePrincipalARN(assertion string, role string) (string, error) {
 		return "", err
 	}
 	// returns our Roles as well as our Email address
-	items := xmlquery.Find(q, "/samlp:Response/saml:Assertion/saml:AttributeStatement/saml:Attribute/saml:AttributeValue")
+	items := xmlquery.Find(q, XML_QUERY_ROLES)
 	search_role := fmt.Sprintf("%s,", role)
 	for _, item := range items {
 		if strings.HasPrefix(item.InnerText(), search_role) {
@@ -79,7 +84,7 @@ func GetExpireTime(assertion string) (*time.Time, error) {
 	}
 	var t time.Time
 	// returns our expire time condition
-	items := xmlquery.Find(q, "/samlp:Response/saml:Assertion/saml:Conditions/@NotOnOrAfter")
+	items := xmlquery.Find(q, XML_QUERY_EXPIRES)
 	for _, item := range items {
 		t, err = time.Parse("2006-01-02T15:04:05Z", item.InnerText())
 		if err != nil {
