@@ -174,6 +174,12 @@ calls to `onelogin-aws-role exec <profile> ...` which are contained in that OneL
 Application will not require re-authentication until the STS Session Tokens expire.
 -->
 
+### Flush stored STS Session Token / Credentials
+
+`onelogin-aws-role flush <profile name>`
+
+This will flush the stored credentials and force you to re-authenticate to use this role again.
+
 ## Other Files
 
 onelogin-aws-role will create the following file(s):

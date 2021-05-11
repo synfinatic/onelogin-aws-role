@@ -22,6 +22,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/99designs/keyring"
 	"github.com/synfinatic/onelogin-aws-role/aws"
@@ -127,4 +128,35 @@ func (kr *KeyringCache) SaveOauthConfig(oauth OauthConfig) error {
 		Data: jdata,
 	})
 	return err
+}
+
+func (kr *KeyringCache) RemoveSTSSession(profile string) error {
+	keys, err := kr.keyring.Keys()
+	if err != nil {
+		return err
+	}
+
+	// make sure we have this profile stored
+	hasKey := false
+	key := fmt.Sprintf("profile:%s", profile)
+	for _, k := range keys {
+		if k == key {
+			hasKey = true
+			break
+		}
+	}
+	if !hasKey {
+		return fmt.Errorf("Unknown profile: %s", profile)
+	}
+
+	// Can't just call keyring.Remove() because it's broken, so we'll update the record instead
+	session := aws.STSSession{}
+	err = kr.GetSTSSession(profile, &session)
+	if err != nil {
+		return err
+	}
+	session.Expiration = time.Now()
+	session.SessionToken = ""
+	session.SecretAccessKey = ""
+	return kr.SaveSTSSession(profile, session)
 }
