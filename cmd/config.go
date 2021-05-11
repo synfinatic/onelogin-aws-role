@@ -39,14 +39,13 @@ import (
 
 // ConfigFile structure
 type ConfigFile struct {
-	Region    string                `yaml:"region"`                           // OneLogin Region
-	Username  string                `yaml:"username"`                         // or email address
-	Subdomain string                `yaml:"subdomain"`                        // XXXX.onelogin.com
-	Mfa       int32                 `yaml:"mfa"`                              // MFA device_id to use by default
-	Duration  uint32                `yaml:"duration"`                         // Default duration (in seconds) for credentials
-	Accounts  *map[uint64]string    `yaml:"aws_accounts" header:"AccountID"`  // AWS AccountID is the key
-	Apps      *map[uint32]AppConfig `yaml:"apps" header:"AppID"`              // OneLogin AppID is the key
-	Fields    *[]string             `yaml:"fields,omitempty" header:"Fields"` // List of fields to report with `list` command
+	Region    string                `yaml:"region"`                                    // OneLogin Region
+	Username  string                `yaml:"username"`                                  // or email address
+	Subdomain string                `yaml:"subdomain"`                                 // XXXX.onelogin.com
+	Mfa       int32                 `yaml:"mfa"`                                       // MFA device_id to use by default
+	Accounts  *map[uint64]string    `yaml:"aws_accounts,omitempty" header:"AccountID"` // AWS AccountID is the key
+	Apps      *map[uint32]AppConfig `yaml:"apps" header:"AppID"`                       // OneLogin AppID is the key
+	Fields    *[]string             `yaml:"fields,omitempty" header:"Fields"`          // List of fields to report with `list` command
 }
 
 // App config
@@ -116,8 +115,11 @@ func (c *ConfigFile) roleToFlatConfig(appid uint32, app AppConfig, role RoleConf
 	if err != nil {
 		log.WithError(err).Warnf("Unable to get AWS Account ID for role '%s'", role.Arn)
 	}
-	a := *c.Accounts
-	accountname, _ := a[accountid]
+	accountname := "<Unknown>"
+	if c.Accounts != nil {
+		a := *c.Accounts
+		accountname, _ = a[accountid]
+	}
 	fc := FlatConfig{
 		AccountId:   accountid,
 		AccountName: accountname,

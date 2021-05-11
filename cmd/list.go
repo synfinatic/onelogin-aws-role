@@ -22,8 +22,6 @@ import (
 	"fmt"
 	"os"
 	"reflect"
-	"sort"
-	"strings"
 
 	log "github.com/sirupsen/logrus"
 	"github.com/synfinatic/onelogin-aws-role/aws"
@@ -61,24 +59,34 @@ func (cc *ListCmd) Run(ctx *RunContext) error {
 
 	// List our AWS account aliases by abusing the FlatConfig struct
 	accounts := []FlatConfig{}
-	for k, v := range *ctx.Config.Accounts {
-		accounts = append(accounts, FlatConfig{
-			AccountId:   k,
-			AccountName: v,
-		})
-	}
-	accountList := []string{
-		"AccountId",
-		"AccountName",
-	}
-	// manually convert our []FlatConfig into []TableStruct because Go is lame
-	ts := []utils.TableStruct{}
-	for _, x := range accounts {
-		ts = append(ts, x)
-	}
-	utils.GenerateTable(ts, accountList)
+	if ctx.Config.Accounts != nil {
+		for k, v := range *ctx.Config.Accounts {
+			accounts = append(accounts, FlatConfig{
+				AccountId:   k,
+				AccountName: v,
+			})
+		}
+		accountList := []string{
+			"AccountId",
+			"AccountName",
+		}
+		// manually convert our []FlatConfig into []TableStruct because Go is lame
+		ts := []utils.TableStruct{}
+		for _, x := range accounts {
+			ts = append(ts, x)
+		}
+		utils.GenerateTable(ts, accountList)
 
-	fmt.Printf("\n\n")
+		fmt.Printf("\n\n")
+	} else {
+		// Skip AccountName if we don't know it
+		defaultFields = []string{
+			"AppAlias",
+			"Profile",
+			"Arn",
+			"Expires",
+		}
+	}
 
 	kr, err := OpenKeyring(nil)
 	if err != nil {
@@ -87,7 +95,7 @@ func (cc *ListCmd) Run(ctx *RunContext) error {
 	}
 
 	// manually convert our []FlatConfig into []TableStruct because Go is lame
-	ts = []utils.TableStruct{}
+	ts := []utils.TableStruct{}
 	for _, fc := range fcList {
 		if kr != nil {
 			session := aws.STSSession{}
@@ -114,35 +122,27 @@ func (cc *ListCmd) Run(ctx *RunContext) error {
 	return nil
 }
 
+type ConfigFieldNames struct {
+	Field       string `header:"Field"`
+	Description string `header:"Description"`
+}
+
+func (cfn ConfigFieldNames) GetHeader(fieldName string) (string, error) {
+	v := reflect.ValueOf(cfn)
+	return utils.GetHeaderTag(v, fieldName)
+}
+
 func listFlatConfigFields(fc FlatConfig) {
-	fields := map[string]string{}
 	t := reflect.TypeOf(fc)
+	ts := []utils.TableStruct{}
 	for i := 0; i < t.NumField(); i++ {
 		field := t.Field(i)
-		fields[field.Name] = field.Tag.Get(utils.TABLE_HEADER_TAG)
+		ts = append(ts, ConfigFieldNames{
+			Field:       field.Name,
+			Description: field.Tag.Get(utils.TABLE_HEADER_TAG),
+		})
 	}
 
-	max_key := len("Field")
-	max_val := len("Description")
-	for k, v := range fields {
-		if len(k) > max_key {
-			max_key = len(k)
-		}
-		if len(v) > max_val {
-			max_val = len(v)
-		}
-	}
-	fstring := fmt.Sprintf("%%-%ds | %%-%ds\n", max_key, max_val)
-	headerLine := fmt.Sprintf(fstring, "Field", "Description")
-	fmt.Printf("%s%s\n", headerLine, strings.Repeat("=", len(headerLine)-1))
-
-	// sort keys
-	keys := make([]string, 0, len(fields))
-	for k := range fields {
-		keys = append(keys, k)
-	}
-	sort.Strings(keys)
-	for _, k := range keys {
-		fmt.Printf(fstring, k, fields[k])
-	}
+	fields := []string{"Field", "Description"}
+	utils.GenerateTable(ts, fields)
 }

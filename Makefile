@@ -9,7 +9,7 @@ endif
 BUILDINFOSDET ?=
 PROGRAM_ARGS ?=
 
-PROJECT_VERSION           := 0.1.3
+PROJECT_VERSION           := 0.1.4
 DOCKER_REPO               := synfinatic
 PROJECT_NAME              := onelogin-aws-role
 PROJECT_TAG               := $(shell git describe --tags 2>/dev/null $(git rev-list --tags --max-count=1))
@@ -20,13 +20,14 @@ PROJECT_COMMIT            := $(shell git rev-parse HEAD)
 ifeq ($(PROJECT_COMMIT),)
 PROJECT_COMMIT            := NO-CommitID
 endif
+PROJECT_DELTA             := $(shell DELTA_LINES=$$(git diff | wc -l); if [ $${DELTA_LINES} -ne 0 ]; then echo $${DELTA_LINES} ; else echo "''" ; fi)
 VERSION_PKG               := $(shell echo $(PROJECT_VERSION) | sed 's/^v//g')
 LICENSE                   := GPLv3
 URL                       := https://github.com/$(DOCKER_REPO)/$(PROJECT_NAME)
 DESCRIPTION               := OneLogin Go AWS Assume Role
 BUILDINFOS                := $(shell date +%FT%T%z)$(BUILDINFOSDET)
 HOSTNAME                  := $(shell hostname)
-LDFLAGS                   := -X "main.Version=$(PROJECT_VERSION)" -X "main.Buildinfos=$(BUILDINFOS)" -X "main.Tag=$(PROJECT_TAG)" -X "main.CommitID=$(PROJECT_COMMIT)"
+LDFLAGS                   := -X "main.Version=$(PROJECT_VERSION)" -X "main.Delta=$(PROJECT_DELTA)" -X "main.Buildinfos=$(BUILDINFOS)" -X "main.Tag=$(PROJECT_TAG)" -X "main.CommitID=$(PROJECT_COMMIT)"
 OUTPUT_NAME               := $(DIST_DIR)$(PROJECT_NAME)-$(PROJECT_VERSION)-$(GOOS)-$(GOARCH)  # default for current platform
 # supported platforms for `make release`
 WINDOWS_BIN               := $(DIST_DIR)$(PROJECT_NAME)-$(PROJECT_VERSION)-windows-amd64.exe
