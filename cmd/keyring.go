@@ -150,6 +150,7 @@ func (kr *KeyringCache) RemoveSTSSession(profile string) error {
 	}
 
 	// Can't just call keyring.Remove() because it's broken, so we'll update the record instead
+	// return kr.keyring.Remove(key)
 	session := aws.STSSession{}
 	err = kr.GetSTSSession(profile, &session)
 	if err != nil {

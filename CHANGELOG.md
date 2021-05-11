@@ -5,7 +5,7 @@
 ## v0.1.4 - 2021-05-11
 
 - Add support for `--prompt-mfa` to force promting for which MFA you want to use
-- Add support for `flush` command
+- Add support for `expire` command
 - Various code clean up & refactoring
 - Fix crash in `list` command when account aliases are not defined
 - Add support for `ONELOGIN_AWS_DURATION` environment variable
