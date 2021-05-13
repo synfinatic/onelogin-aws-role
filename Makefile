@@ -42,7 +42,10 @@ ALL: $(OUTPUT_NAME) ## Build binary.  Needs to be a supported plaform as defined
 
 include help.mk  # place after ALL target and before all other targets
 
-release: windows windows32 linux linux-arm64 darwin ## Build all our release binaries
+build-release: windows windows32 linux linux-arm64 darwin ## Build all our release binaries
+
+release: clean build-release
+	cd dist && shasum -a 256 * | gpg --clear-sign >release.sig
 
 .PHONY: run
 run: cmd/*.go  ## build and run cria using $PROGRAM_ARGS
