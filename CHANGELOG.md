@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- `make release` now creates a release.sig file for signed releases
+
 ## v0.1.4 - 2021-05-11
 
 - Add support for `--prompt-mfa` to force promting for which MFA you want to use
