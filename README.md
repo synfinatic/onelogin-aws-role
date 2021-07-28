@@ -1,5 +1,13 @@
 # OneLogin AWS (Assume) Role
 
+## Project Status
+
+This project is on indefinite pause as my efforts in this area have moved to
+[AWS SSO CLI](https://github.com/synfinatic/aws-sso-cli) which uses AWS SSO
+instead of SAML.
+
+## About
+
 Assume an AWS Role and get temporary credentials using [OneLogin](
 https://www.onelogin.com).
 
