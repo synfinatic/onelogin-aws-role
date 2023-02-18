@@ -1,3 +1,8 @@
+# This project is archived.
+
+I'm no longer actively maintaining this project as my efforts are now focused
+on [aws-sso-cli](https://github.com/synfinatic/aws-sso-cli).
+
 # OneLogin AWS (Assume) Role
 
 ## Project Status
